@@ -24,6 +24,9 @@ jobs:
       # Execute Gradle commands in GitHub Actions workflows
       - uses: gradle/actions/setup-gradle@v3
 
+      - name: Grant execute permission to Gradle wrapper
+        run: chmod +x ./gradlew
+
       - name: Execute tests with coverage
         run: ./gradlew runOnGitHub
 
