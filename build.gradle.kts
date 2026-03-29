@@ -7,7 +7,7 @@ plugins {
     war
 }
 
-group = "ar.edu.unsam"
+group = "plapstudio.agendify"
 version = "0.0.1-SNAPSHOT"
 
 java {
