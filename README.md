@@ -4,12 +4,14 @@ Agendify es una plataforma SaaS de gestión de turnos orientada a profesionales,
 
 Este repositorio contiene la API REST del backend, desarrollada en Kotlin con Spring Boot.
 
+🔗 **Repositorio del frontend:** [proyecto-frontend-PlapStudio](https://github.com/LopezGonzaloDamian/proyecto-frontend-PlapStudio)
+
 
 # Cómo correr el proyecto
 La aplicación utiliza datos iniciales cargados automáticamente (bootstrap). No requiere configuración adicional.
 
 ## Requisitos previos
-- (JDK temurin 21 - versión 21.0.6)[https://adoptium.net/es/temurin/releases?version=21]
+- [JDK temurin 21 - versión 21.0.6](https://adoptium.net/es/temurin/releases?version=21)
 - kotestVersion 5.8.0
 
 ## Ejecución
