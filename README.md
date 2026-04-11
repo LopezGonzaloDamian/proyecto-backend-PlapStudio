@@ -1,6 +1,3 @@
-<img width="979" height="282" alt="image" src="https://github.com/user-attachments/assets/a7f933c1-a5f2-4baa-8982-75ce13334e7a" />
-
-
 # 📅 Agendify — Backend
 
 Agendify es una plataforma SaaS de gestión de turnos orientada a profesionales, diseñada para automatizar la agenda, centralizar la gestión de clientes y simplificar el proceso de reservas, notificaciones y cobros.
