@@ -16,11 +16,11 @@ class UsuarioService(private val usuarioRepository: UsuarioRepository) {
     fun create(usuario: Usuario): Usuario = usuarioRepository.save(usuario)
 
     fun update(id: Long, datos: Usuario): Usuario {
-        val existente      = findById(id)
-        existente.nombre   = datos.nombre
-        existente.apellido = datos.apellido
-        existente.telefono = datos.telefono
-        existente.rol      = datos.rol
+        val existente            = findById(id)
+        existente.nombreCompleto = datos.nombreCompleto
+        existente.telefono       = datos.telefono
+        existente.activo         = datos.activo
+        existente.roles          = datos.roles
         return usuarioRepository.save(existente)
     }
 

@@ -3,6 +3,7 @@ package plapstudio.agendify.controller
 import plapstudio.agendify.domain.Turno
 import plapstudio.agendify.service.TurnoService
 import org.springframework.web.bind.annotation.*
+import java.util.UUID
 
 @RestController
 @RequestMapping("/turnos")
@@ -10,10 +11,10 @@ import org.springframework.web.bind.annotation.*
 class TurnoController(private val turnoService: TurnoService) {
 
     @GetMapping("/{id}")
-    fun getById(@PathVariable id: Long): Turno = turnoService.findById(id)
+    fun getById(@PathVariable id: UUID): Turno = turnoService.findById(id)
 
     @GetMapping("/agenda/{agendaId}")
-    fun getByAgenda(@PathVariable agendaId: Long): List<Turno> =
+    fun getByAgenda(@PathVariable agendaId: UUID): List<Turno> =
         turnoService.findByAgenda(agendaId)
 
     @GetMapping("/cliente/{clienteId}")
@@ -24,11 +25,11 @@ class TurnoController(private val turnoService: TurnoService) {
     fun reservar(@RequestBody turno: Turno): Turno = turnoService.reservar(turno)
 
     @PatchMapping("/{id}/confirmar")
-    fun confirmar(@PathVariable id: Long): Turno = turnoService.confirmar(id)
+    fun confirmar(@PathVariable id: UUID): Turno = turnoService.confirmar(id)
 
     @PatchMapping("/{id}/cancelar")
-    fun cancelar(@PathVariable id: Long): Turno = turnoService.cancelar(id)
+    fun cancelar(@PathVariable id: UUID): Turno = turnoService.cancelar(id)
 
     @PatchMapping("/{id}/completar")
-    fun completar(@PathVariable id: Long): Turno = turnoService.completar(id)
+    fun completar(@PathVariable id: UUID): Turno = turnoService.completar(id)
 }

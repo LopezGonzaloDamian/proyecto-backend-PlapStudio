@@ -2,39 +2,44 @@ package plapstudio.agendify.domain
 
 import jakarta.persistence.*
 import java.time.DayOfWeek
+import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.LocalTime
+import java.util.UUID
 
 @Entity
 @Table(name = "agendas")
 class Agenda(
-    var nombre: String,
-    var descripcion: String,
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    var id: UUID? = null,
 
     @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "profesional_id", nullable = false)
-    val profesional: Usuario,
+    @JoinColumn(name = "email_profesional", nullable = false)
+    val profesional: PerfilProfesional,
 
-    @ElementCollection(fetch = FetchType.EAGER, targetClass = DayOfWeek::class)
-    @CollectionTable(name = "agenda_dias", joinColumns = [JoinColumn(name = "agenda_id")])
-    @Enumerated(EnumType.STRING)
-    @Column(name = "dia")
-    var diasDisponibles: MutableSet<DayOfWeek> = mutableSetOf(),
+    var nombre: String,
+    var descripcion: String,
+    var activa: Boolean = true,
+    val creadaEn: LocalDateTime = LocalDateTime.now(),
 
-    var horaInicio: LocalTime,
-    var horaFin: LocalTime,
-    var duracionTurnoMinutos: Int,
-    var activa: Boolean = true
-) : Identifiable {
+    @OneToMany(mappedBy = "agenda", cascade = [CascadeType.ALL], fetch = FetchType.EAGER, orphanRemoval = true)
+    var configuraciones: MutableList<ConfiguracionHoraria> = mutableListOf(),
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    override var id: Long? = null
+    @OneToMany(mappedBy = "agenda", cascade = [CascadeType.ALL], fetch = FetchType.EAGER, orphanRemoval = true)
+    var excepciones: MutableList<ExcepcionAgenda> = mutableListOf()
+) {
+    fun estaDisponibleEn(dia: DayOfWeek, hora: LocalTime, duracionMinutos: Int): Boolean {
+        if (!activa) return false
+        return configuraciones.any { config ->
+            config.diaSemana == dia &&
+            !hora.isBefore(config.inicioSlot) &&
+            !hora.plusMinutes(duracionMinutos.toLong()).isAfter(config.finSlot)
+        }
+    }
 
-    fun estaDisponibleEn(dia: DayOfWeek, hora: LocalTime): Boolean =
-        activa &&
-        dia in diasDisponibles &&
-        !hora.isBefore(horaInicio) &&
-        !hora.plusMinutes(duracionTurnoMinutos.toLong()).isAfter(horaFin)
+    fun tieneExcepcionEn(fecha: LocalDate): Boolean =
+        excepciones.any { !fecha.isBefore(it.fechaInicio) && !fecha.isAfter(it.fechaFin) }
 
     fun darDeBaja() {
         activa = false

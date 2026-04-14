@@ -1,15 +1,16 @@
 package plapstudio.agendify.repository
 
 import plapstudio.agendify.domain.Agenda
+import plapstudio.agendify.domain.PerfilCliente
 import plapstudio.agendify.domain.Turno
-import plapstudio.agendify.domain.Usuario
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.stereotype.Repository
 import java.time.LocalDateTime
+import java.util.UUID
 
 @Repository
-interface TurnoRepository : JpaRepository<Turno, Long> {
-    fun findByCliente(cliente: Usuario): List<Turno>
+interface TurnoRepository : JpaRepository<Turno, UUID> {
+    fun findByCliente(cliente: PerfilCliente): List<Turno>
     fun findByAgenda(agenda: Agenda): List<Turno>
-    fun existsByAgendaAndFechaHora(agenda: Agenda, fechaHora: LocalDateTime): Boolean
+    fun existsByAgendaAndIniciaEn(agenda: Agenda, iniciaEn: LocalDateTime): Boolean
 }
