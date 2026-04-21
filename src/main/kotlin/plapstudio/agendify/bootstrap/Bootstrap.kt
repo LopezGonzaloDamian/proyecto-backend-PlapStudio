@@ -2,16 +2,18 @@ package plapstudio.agendify.bootstrap
 
 import plapstudio.agendify.domain.*
 import plapstudio.agendify.repository.*
-import org.springframework.beans.factory.InitializingBean
+import org.springframework.boot.ApplicationArguments
+import org.springframework.boot.ApplicationRunner
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 import java.math.BigDecimal
 import java.time.DayOfWeek
 import java.time.LocalDateTime
 import java.time.LocalTime
 
 @Service
-class Bootstrap : InitializingBean {
+class Bootstrap : ApplicationRunner {
 
     @Autowired private lateinit var rolRepository:                  RolRepository
     @Autowired private lateinit var usuarioRepository:              UsuarioRepository
@@ -22,7 +24,8 @@ class Bootstrap : InitializingBean {
     @Autowired private lateinit var turnoRepository:                TurnoRepository
     @Autowired private lateinit var pagoRepository:                 PagoRepository
 
-    override fun afterPropertiesSet() {
+    @Transactional
+    override fun run(args: ApplicationArguments) {
         if (usuarioRepository.count() > 0) return
 
         // ============================================================

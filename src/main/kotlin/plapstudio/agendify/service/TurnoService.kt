@@ -9,6 +9,7 @@ import plapstudio.agendify.repository.HistorialTurnoRepository
 import plapstudio.agendify.repository.PerfilClienteRepository
 import plapstudio.agendify.repository.TurnoRepository
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 import java.util.UUID
 
 @Service
@@ -16,7 +17,8 @@ class TurnoService(
     private val turnoRepository:          TurnoRepository,
     private val historialTurnoRepository: HistorialTurnoRepository,
     private val agendaService:            AgendaService,
-    private val perfilClienteRepository:  PerfilClienteRepository
+    private val perfilClienteRepository:  PerfilClienteRepository,
+    private val n8nWebhookService:        N8nWebhookService
 ) {
 
     fun findById(id: UUID): Turno =
@@ -52,7 +54,14 @@ class TurnoService(
     }
 
     fun cancelar(id: UUID): Turno  = cambiarEstado(id) { it.cancelar() }
-    fun confirmar(id: UUID): Turno = cambiarEstado(id) { it.confirmar() }
+
+    @Transactional
+    fun confirmar(id: UUID): Turno {
+        val turnoConfirmado = cambiarEstado(id) { it.confirmar() }
+        n8nWebhookService.notificarTurnoConfirmado(turnoConfirmado)
+        return turnoConfirmado
+    }
+
     fun completar(id: UUID): Turno = cambiarEstado(id) { it.completar() }
 
     private fun cambiarEstado(id: UUID, accion: (Turno) -> Unit): Turno {

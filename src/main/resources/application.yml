@@ -16,13 +16,16 @@ spring:
     open-in-view: false
     show-sql: true
     hibernate:
-      ddl-auto: create-drop
+      ddl-auto: update
     properties:
       hibernate:
         format_sql: true
 logging:
   level:
     root: INFO
+integrations:
+  n8n:
+    turno-confirmado-url: http://localhost:5678/webhook-test/turno-confirmado
 
 ---
 spring:
