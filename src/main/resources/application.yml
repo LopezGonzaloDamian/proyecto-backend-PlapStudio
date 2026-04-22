@@ -8,7 +8,7 @@ server:
     include-stacktrace: never
 spring:
   datasource:
-    url: jdbc:postgresql://0.0.0.0:5432/db_agendify
+    url: jdbc:postgresql://localhost:5432/db_agendify
     username: agendify
     password: agendify
     driver-class-name: org.postgresql.Driver
@@ -26,6 +26,12 @@ logging:
 integrations:
   n8n:
     turno-confirmado-url: http://localhost:5678/webhook-test/turno-confirmado
+agendify:
+  chatbot:
+    ollama:
+      enabled: true
+      base-url: http://127.0.0.1:11434
+      model: llama3.2:3b
 
 ---
 spring:
@@ -34,3 +40,12 @@ spring:
       on-profile: docker
   datasource:
     url: jdbc:postgresql://postgres:5432/db_agendify
+integrations:
+  n8n:
+    turno-confirmado-url: http://n8n:5678/webhook-test/turno-confirmado
+agendify:
+  chatbot:
+    ollama:
+      enabled: true
+      base-url: http://ollama:11434
+      model: llama3.2:3b
