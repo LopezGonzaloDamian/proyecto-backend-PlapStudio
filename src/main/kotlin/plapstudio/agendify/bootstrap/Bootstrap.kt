@@ -1,17 +1,19 @@
 package plapstudio.agendify.bootstrap
 
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.context.event.ApplicationReadyEvent
+import org.springframework.context.event.EventListener
+import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 import plapstudio.agendify.domain.*
 import plapstudio.agendify.repository.*
-import org.springframework.beans.factory.InitializingBean
-import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.stereotype.Service
 import java.math.BigDecimal
 import java.time.DayOfWeek
 import java.time.LocalDateTime
 import java.time.LocalTime
 
 @Service
-class Bootstrap : InitializingBean {
+class Bootstrap {
 
     @Autowired private lateinit var rolRepository:                  RolRepository
     @Autowired private lateinit var usuarioRepository:              UsuarioRepository
@@ -21,24 +23,41 @@ class Bootstrap : InitializingBean {
     @Autowired private lateinit var configuracionHorariaRepository: ConfiguracionHorariaRepository
     @Autowired private lateinit var turnoRepository:                TurnoRepository
     @Autowired private lateinit var pagoRepository:                 PagoRepository
+    @Autowired private lateinit var favoritoRepository:             FavoritoRepository
+    @Autowired private lateinit var notificacionRepository:         NotificacionRepository
+    @Autowired private lateinit var profesionalAsistenteRepository: ProfesionalAsistenteRepository
 
-    override fun afterPropertiesSet() {
+    private data class ProfTemplate(
+        val email: String, val nombre: String, val telefono: String,
+        val especialidad: String, val biografia: String,
+        val urlAvatar: String, val destacado: Boolean,
+        val ubicacion: String, val direccion: String, val precio: BigDecimal,
+        val cobertura: String, val matriculaNacional: String, val matriculaProvincial: String,
+        val servicios: List<String>,
+        val agendaNombre: String, val agendaDescripcion: String
+    )
+
+    private data class ProfRecord(val usuario: Usuario, val perfil: PerfilProfesional, val agenda: Agenda)
+    private data class ClienteRecord(val usuario: Usuario, val perfil: PerfilCliente)
+    private data class TurnoSeed(
+        val agenda: Agenda, val cliente: PerfilCliente,
+        val iniciaEn: LocalDateTime, val duracion: Int, val estado: EstadoTurno,
+        val notas: String = "", val pagar: Boolean = false
+    )
+
+    @EventListener(ApplicationReadyEvent::class)
+    @Transactional
+    fun load() {
         if (usuarioRepository.count() > 0) return
 
-        // ============================================================
-        // ROLES
-        // ============================================================
+        // ─── ROLES ──────────────────────────────────────────────────────────
+        val rolAdmin       = rolRepository.save(Rol(nombre = "ADMIN",       descripcion = "Administrador del sistema"))
+        val rolProfesional = rolRepository.save(Rol(nombre = "PROFESIONAL", descripcion = "Dueño de una o más agendas"))
+        val rolAsistente   = rolRepository.save(Rol(nombre = "ASISTENTE",   descripcion = "Colabora en la gestión de una agenda"))
+        val rolCliente     = rolRepository.save(Rol(nombre = "CLIENTE",     descripcion = "Reserva turnos en agendas"))
 
-        val rolAdmin        = rolRepository.save(Rol(nombre = "ADMIN",        descripcion = "Administrador del sistema"))
-        val rolProfesional  = rolRepository.save(Rol(nombre = "PROFESIONAL",  descripcion = "Dueño de una o más agendas"))
-        val rolAsistente    = rolRepository.save(Rol(nombre = "ASISTENTE",    descripcion = "Colabora en la gestión de una agenda"))
-        val rolCliente      = rolRepository.save(Rol(nombre = "CLIENTE",      descripcion = "Reserva turnos en agendas"))
-
-        // ============================================================
-        // USUARIOS
-        // ============================================================
-
-        val admin = usuarioRepository.save(Usuario(
+        // ─── ADMIN ──────────────────────────────────────────────────────────
+        usuarioRepository.save(Usuario(
             email          = "admin@agendify.com",
             contrasenaHash = "1234",
             nombreCompleto = "Admin Agendify",
@@ -46,282 +65,276 @@ class Bootstrap : InitializingBean {
             roles          = mutableSetOf(rolAdmin)
         ))
 
-        val drLopez = usuarioRepository.save(Usuario(
-            email          = "gonzalo.lopez@agendify.com",
-            contrasenaHash = "1234",
-            nombreCompleto = "Gonzalo López",
-            telefono       = "1155667788",
-            roles          = mutableSetOf(rolProfesional)
-        ))
+        // ─── PROFESIONALES ──────────────────────────────────────────────────
+        val profesionalesSeed = listOf(
+            ProfTemplate(
+                email = "martina.rios@agendify.com", nombre = "Dra. Martina Rios", telefono = "1139494813",
+                especialidad = "Nutricion",
+                biografia    = "Atencion nutricional integral para planes de alimentacion, control metabolico y seguimiento de habitos.",
+                urlAvatar    = "https://randomuser.me/api/portraits/women/10.jpg", destacado = true,
+                ubicacion    = "Asuncion", direccion = "Asuncion, Paraguay", precio = BigDecimal("85000"),
+                cobertura    = "PARTICULAR", matriculaNacional = "M. N. 130.357", matriculaProvincial = "M. P. 451.624",
+                servicios    = listOf("Consulta inicial", "Control mensual", "Plan alimentario"),
+                agendaNombre = "Consultorio nutricion - Dra. Martina Rios",
+                agendaDescripcion = "Atencion nutricional con turnos cada 45 minutos."
+            ),
+            ProfTemplate(
+                email = "diego.benitez@agendify.com", nombre = "Lic. Diego Benitez", telefono = "1139494814",
+                especialidad = "Kinesiologia",
+                biografia    = "Rehabilitacion fisica, tratamiento de lesiones deportivas y sesiones de movilidad funcional.",
+                urlAvatar    = "https://randomuser.me/api/portraits/men/15.jpg", destacado = true,
+                ubicacion    = "San Lorenzo", direccion = "San Lorenzo, Paraguay", precio = BigDecimal("70000"),
+                cobertura    = "PARTICULAR", matriculaNacional = "M. N. 130.357", matriculaProvincial = "M. P. 451.624",
+                servicios    = listOf("Evaluacion", "Sesion de rehabilitacion", "Masoterapia"),
+                agendaNombre = "Consultorio kinesiologico - Lic. Diego Benitez",
+                agendaDescripcion = "Sesiones de rehabilitacion y masoterapia."
+            ),
+            ProfTemplate(
+                email = "camila.duarte@agendify.com", nombre = "Dra. Camila Duarte", telefono = "1123344556",
+                especialidad = "Odontologia",
+                biografia    = "Consultorio odontologico con agenda para controles, limpieza, restauraciones y urgencias simples.",
+                urlAvatar    = "https://randomuser.me/api/portraits/women/22.jpg", destacado = false,
+                ubicacion    = "Fernando de la Mora", direccion = "Fernando de la Mora, Paraguay", precio = BigDecimal("120000"),
+                cobertura    = "PARTICULAR", matriculaNacional = "M. N. 221.840", matriculaProvincial = "M. P. 512.204",
+                servicios    = listOf("Control odontologico", "Limpieza dental", "Restauracion"),
+                agendaNombre = "Consultorio odontologico - Dra. Camila Duarte",
+                agendaDescripcion = "Controles, limpieza y restauraciones dentales."
+            ),
+            ProfTemplate(
+                email = "valeria.sosa@agendify.com", nombre = "Lic. Valeria Sosa", telefono = "1198765432",
+                especialidad = "Psicologia",
+                biografia    = "Acompanamiento psicologico para adultos, ansiedad, organizacion personal y bienestar emocional.",
+                urlAvatar    = "https://randomuser.me/api/portraits/women/33.jpg", destacado = false,
+                ubicacion    = "Asuncion", direccion = "Asuncion, Paraguay", precio = BigDecimal("95000"),
+                cobertura    = "PARTICULAR", matriculaNacional = "M. N. 175.912", matriculaProvincial = "M. P. 490.132",
+                servicios    = listOf("Primera entrevista", "Sesion individual", "Seguimiento online"),
+                agendaNombre = "Consultorio psicologia - Lic. Valeria Sosa",
+                agendaDescripcion = "Sesiones individuales y seguimiento online."
+            ),
+            ProfTemplate(
+                email = "leo.barrios@agendify.com", nombre = "Leo Barrios", telefono = "0981123456",
+                especialidad = "Barberia",
+                biografia    = "Cortes clasicos y modernos, perfilado de barba y atencion con turnos para evitar esperas.",
+                urlAvatar    = "https://randomuser.me/api/portraits/men/45.jpg", destacado = false,
+                ubicacion    = "Lambare", direccion = "Lambare, Paraguay", precio = BigDecimal("60000"),
+                cobertura    = "", matriculaNacional = "", matriculaProvincial = "",
+                servicios    = listOf("Corte clasico", "Corte y barba", "Perfilado de barba"),
+                agendaNombre = "Barberia Leo - Lambare",
+                agendaDescripcion = "Cortes y barba con turnos cada 45 minutos."
+            ),
+            ProfTemplate(
+                email = "paula.gimenez@agendify.com", nombre = "Paula Gimenez", telefono = "0981456789",
+                especialidad = "Peluqueria",
+                biografia    = "Turnos para color, brushing, cortes y tratamientos capilares con atencion personalizada.",
+                urlAvatar    = "https://randomuser.me/api/portraits/women/47.jpg", destacado = false,
+                ubicacion    = "Villa Morra", direccion = "Villa Morra, Asuncion", precio = BigDecimal("110000"),
+                cobertura    = "", matriculaNacional = "", matriculaProvincial = "",
+                servicios    = listOf("Corte y brushing", "Coloracion", "Tratamiento capilar"),
+                agendaNombre = "Peluqueria Paula",
+                agendaDescripcion = "Color, brushing y tratamientos capilares."
+            ),
+            ProfTemplate(
+                email = "sofi.acosta@agendify.com", nombre = "Sofi Acosta", telefono = "0981765432",
+                especialidad = "Manicurista",
+                biografia    = "Agenda de manicura y nail art con turnos programados para esmaltado, kapping y disenos.",
+                urlAvatar    = "https://randomuser.me/api/portraits/women/55.jpg", destacado = false,
+                ubicacion    = "Fernando de la Mora", direccion = "Fernando de la Mora, Paraguay", precio = BigDecimal("75000"),
+                cobertura    = "", matriculaNacional = "", matriculaProvincial = "",
+                servicios    = listOf("Esmaltado semipermanente", "Kapping", "Nail art"),
+                agendaNombre = "Estudio de unas - Sofi",
+                agendaDescripcion = "Esmaltado semipermanente, kapping y nail art."
+            ),
+            ProfTemplate(
+                email = "majo.ferreira@agendify.com", nombre = "Majo Ferreira", telefono = "0981987654",
+                especialidad = "Maquillaje profesional",
+                biografia    = "Reservas para maquillaje social, novias y producciones con bloques de tiempo definidos.",
+                urlAvatar    = "https://randomuser.me/api/portraits/women/65.jpg", destacado = false,
+                ubicacion    = "San Lorenzo", direccion = "San Lorenzo, Paraguay", precio = BigDecimal("130000"),
+                cobertura    = "", matriculaNacional = "", matriculaProvincial = "",
+                servicios    = listOf("Maquillaje social", "Maquillaje para eventos", "Prueba de novia"),
+                agendaNombre = "Estudio de maquillaje Majo",
+                agendaDescripcion = "Maquillaje social y para eventos."
+            )
+        )
 
-        val draGomez = usuarioRepository.save(Usuario(
-            email          = "maria.gomez@agendify.com",
-            contrasenaHash = "1234",
-            nombreCompleto = "María Gómez",
-            telefono       = "1144556677",
-            roles          = mutableSetOf(rolProfesional)
-        ))
+        val profesionales = profesionalesSeed.map { t -> crearProfesional(t, rolProfesional) }
 
-        // Profesional que también usa la app como cliente
-        val drRamirez = usuarioRepository.save(Usuario(
-            email          = "carlos.ramirez@agendify.com",
-            contrasenaHash = "1234",
-            nombreCompleto = "Carlos Ramírez",
-            telefono       = "1133445566",
-            roles          = mutableSetOf(rolProfesional, rolCliente)
-        ))
+        val martina = profesionales[0]
+        val diego   = profesionales[1]
+        val camila  = profesionales[2]
+        val valeria = profesionales[3]
+        val leo     = profesionales[4]
+        val paula   = profesionales[5]
+        val sofi    = profesionales[6]
+        val majo    = profesionales[7]
 
-        // Profesional que actúa como su propio asistente (negocio chico)
-        val draFernandez = usuarioRepository.save(Usuario(
-            email          = "laura.fernandez@agendify.com",
+        // ─── ASISTENTES ─────────────────────────────────────────────────────
+        val luciaG = usuarioRepository.save(Usuario(
+            email          = "lucia.gomez@agendify.com",
             contrasenaHash = "1234",
-            nombreCompleto = "Laura Fernández",
-            telefono       = "1122334455",
-            roles          = mutableSetOf(rolProfesional, rolAsistente)
+            nombreCompleto = "Lucia Gomez",
+            telefono       = "1100002233",
+            roles          = mutableSetOf(rolAsistente)
         ))
-
         val rodrigo = usuarioRepository.save(Usuario(
             email          = "rodrigo.casco@agendify.com",
             contrasenaHash = "1234",
             nombreCompleto = "Rodrigo Casco",
-            telefono       = "1111223344",
+            telefono       = "1100003344",
             roles          = mutableSetOf(rolAsistente)
         ))
 
-        val santiago = usuarioRepository.save(Usuario(
-            email          = "santiago.zolla@agendify.com",
+        profesionalAsistenteRepository.save(ProfesionalAsistente(profesional = martina.perfil, asistente = luciaG))
+        profesionalAsistenteRepository.save(ProfesionalAsistente(profesional = leo.perfil,     asistente = luciaG))
+        profesionalAsistenteRepository.save(ProfesionalAsistente(profesional = sofi.perfil,    asistente = luciaG))
+        profesionalAsistenteRepository.save(ProfesionalAsistente(profesional = diego.perfil,   asistente = rodrigo))
+
+        // ─── CLIENTES ───────────────────────────────────────────────────────
+        val clientesSeed = listOf(
+            "ana.garcia@agendify.com"     to ("Ana Garcia"     to "+595 981 111 111"),
+            "carlos.lopez@agendify.com"   to ("Carlos Lopez"   to "+595 981 222 222"),
+            "marta.benitez@agendify.com"  to ("Marta Benitez"  to "+595 981 333 333"),
+            "lucia.peralta@agendify.com"  to ("Lucia Peralta"  to "+595 981 444 444"),
+            "santiago.zolla@agendify.com" to ("Santiago Zolla" to "+595 981 555 555"),
+            "nahuel.garcia@agendify.com"  to ("Nahuel Garcia"  to "+595 981 666 666")
+        )
+        val clientes = clientesSeed.map { (email, datos) ->
+            val (nombre, telefono) = datos
+            val u = usuarioRepository.save(Usuario(
+                email          = email,
+                contrasenaHash = "1234",
+                nombreCompleto = nombre,
+                telefono       = telefono,
+                roles          = mutableSetOf(rolCliente)
+            ))
+            ClienteRecord(u, perfilClienteRepository.save(PerfilCliente(usuario = u)))
+        }
+        val ana    = clientes[0]
+        val carlos = clientes[1]
+        val marta  = clientes[2]
+        val luciaP = clientes[3]
+        val santi  = clientes[4]
+        val nahuel = clientes[5]
+
+        // ─── FAVORITOS ──────────────────────────────────────────────────────
+        favoritoRepository.save(Favorito(cliente = santi.perfil,  profesional = martina.perfil))
+        favoritoRepository.save(Favorito(cliente = santi.perfil,  profesional = valeria.perfil))
+        favoritoRepository.save(Favorito(cliente = ana.perfil,    profesional = martina.perfil))
+        favoritoRepository.save(Favorito(cliente = carlos.perfil, profesional = leo.perfil))
+
+        // ─── TURNOS ─────────────────────────────────────────────────────────
+        val turnosSeed = listOf(
+            // Cliente santi
+            TurnoSeed(martina.agenda, santi.perfil,  LocalDateTime.of(2026, 4, 22, 10, 30), 45, EstadoTurno.CONFIRMADO, "Llevar estudios recientes."),
+            TurnoSeed(diego.agenda,   santi.perfil,  LocalDateTime.of(2026, 4, 18, 14, 30), 45, EstadoTurno.PENDIENTE),
+            TurnoSeed(camila.agenda,  santi.perfil,  LocalDateTime.of(2026, 4, 10,  9, 30), 45, EstadoTurno.COMPLETADO, pagar = true),
+            TurnoSeed(leo.agenda,     santi.perfil,  LocalDateTime.of(2026, 4, 18, 19,  0), 45, EstadoTurno.PENDIENTE),
+
+            // Profesional dashboard (Martina)
+            TurnoSeed(martina.agenda, ana.perfil,    LocalDateTime.of(2026, 4, 18,  9,  0), 45, EstadoTurno.CONFIRMADO, "Evaluacion inicial", pagar = true),
+            TurnoSeed(martina.agenda, carlos.perfil, LocalDateTime.of(2026, 4, 18, 10, 30), 45, EstadoTurno.PENDIENTE,  "Sesion de seguimiento"),
+            TurnoSeed(martina.agenda, marta.perfil,  LocalDateTime.of(2026, 4, 19, 15,  0), 45, EstadoTurno.CONFIRMADO, "Control mensual", pagar = true),
+
+            // Asistente dashboard (Lucia Gomez)
+            TurnoSeed(martina.agenda, ana.perfil,    LocalDateTime.of(2026, 5, 2,  9,  0), 45, EstadoTurno.CONFIRMADO, "Recordar plan anterior."),
+            TurnoSeed(leo.agenda,     carlos.perfil, LocalDateTime.of(2026, 5, 2, 11, 30), 45, EstadoTurno.PENDIENTE,  "Corte y barba."),
+            TurnoSeed(sofi.agenda,    luciaP.perfil, LocalDateTime.of(2026, 5, 4, 17, 30), 45, EstadoTurno.CONFIRMADO, "Kapping con esmalte nude."),
+            TurnoSeed(sofi.agenda,    marta.perfil,  LocalDateTime.of(2026, 5, 3, 15,  0), 45, EstadoTurno.CANCELADO,  "La clienta aviso que no llegaba a tiempo."),
+
+            // Extras
+            TurnoSeed(valeria.agenda, nahuel.perfil, LocalDateTime.of(2026, 4, 20, 13, 30), 45, EstadoTurno.PENDIENTE),
+            TurnoSeed(paula.agenda,   ana.perfil,    LocalDateTime.of(2026, 4, 21, 11,  0), 45, EstadoTurno.PENDIENTE),
+            TurnoSeed(majo.agenda,    luciaP.perfil, LocalDateTime.of(2026, 4, 24, 16,  0), 45, EstadoTurno.CONFIRMADO, "Maquillaje social", pagar = true)
+        )
+
+        turnosSeed.forEach { t ->
+            val turno = turnoRepository.save(Turno(
+                agenda          = t.agenda,
+                cliente         = t.cliente,
+                iniciaEn        = t.iniciaEn,
+                duracionMinutos = t.duracion,
+                estado          = t.estado,
+                notas           = t.notas
+            ))
+            val precio = t.agenda.profesional.precio
+            if (t.pagar) {
+                pagoRepository.save(Pago(
+                    turno                   = turno,
+                    monto                   = precio,
+                    estado                  = EstadoPago.APROBADO,
+                    referenciaProveedorMock = "MOCK-${turno.id}",
+                    pagadoEn                = t.iniciaEn
+                ))
+            } else if (precio > BigDecimal.ZERO && t.estado != EstadoTurno.CANCELADO) {
+                pagoRepository.save(Pago(
+                    turno  = turno,
+                    monto  = precio,
+                    estado = EstadoPago.PENDIENTE
+                ))
+            }
+        }
+
+        // ─── NOTIFICACIONES ─────────────────────────────────────────────────
+        notificacionRepository.save(Notificacion(
+            usuario = santi.usuario, canal = "IN_APP",
+            titulo  = "Recordatorio de turno",
+            cuerpo  = "Tenes un turno confirmado con Dra. Martina Rios el 22/04 a las 10:30."
+        ))
+        notificacionRepository.save(Notificacion(
+            usuario = santi.usuario, canal = "IN_APP",
+            titulo  = "Pago pendiente",
+            cuerpo  = "El turno de nutricion tiene un pago online disponible."
+        ))
+        notificacionRepository.save(Notificacion(
+            usuario = martina.usuario, canal = "IN_APP",
+            titulo  = "Nuevo turno reservado",
+            cuerpo  = "Carlos Lopez reservo una sesion para hoy a las 10:30."
+        ))
+        notificacionRepository.save(Notificacion(
+            usuario = luciaG, canal = "IN_APP",
+            titulo  = "Turno cancelado",
+            cuerpo  = "Marta Benitez cancelo su turno del 03/05 a las 15:00."
+        ))
+    }
+
+    private fun crearProfesional(t: ProfTemplate, rolProfesional: Rol): ProfRecord {
+        val u = usuarioRepository.save(Usuario(
+            email          = t.email,
             contrasenaHash = "1234",
-            nombreCompleto = "Santiago Zolla",
-            telefono       = "1100112233",
-            roles          = mutableSetOf(rolCliente)
+            nombreCompleto = t.nombre,
+            telefono       = t.telefono,
+            roles          = mutableSetOf(rolProfesional)
         ))
-
-        val nahuel = usuarioRepository.save(Usuario(
-            email          = "nahuel.garcia@agendify.com",
-            contrasenaHash = "1234",
-            nombreCompleto = "Nahuel García",
-            telefono       = "1199887766",
-            roles          = mutableSetOf(rolCliente)
+        val perfil = perfilProfesionalRepository.save(PerfilProfesional(
+            usuario             = u,
+            especialidad        = t.especialidad,
+            biografia           = t.biografia,
+            urlAvatar           = t.urlAvatar,
+            destacado           = t.destacado,
+            ubicacion           = t.ubicacion,
+            direccion           = t.direccion,
+            precio              = t.precio,
+            cobertura           = t.cobertura,
+            matriculaNacional   = t.matriculaNacional,
+            matriculaProvincial = t.matriculaProvincial,
+            servicios           = t.servicios.toMutableList()
         ))
-
-        val jonathan = usuarioRepository.save(Usuario(
-            email          = "jonathan.gomez@agendify.com",
-            contrasenaHash = "1234",
-            nombreCompleto = "Jonathan Gómez Ciranna",
-            telefono       = "1188776655",
-            roles          = mutableSetOf(rolCliente)
+        val agenda = agendaRepository.save(Agenda(
+            profesional = perfil,
+            nombre      = t.agendaNombre,
+            descripcion = t.agendaDescripcion
         ))
-
-        val lucia = usuarioRepository.save(Usuario(
-            email          = "lucia.perez@agendify.com",
-            contrasenaHash = "1234",
-            nombreCompleto = "Lucía Pérez",
-            telefono       = "1177665544",
-            roles          = mutableSetOf(rolCliente)
-        ))
-
-        // drRamirez también es cliente → necesita perfil cliente además de profesional
-        val marcosMultiRol = usuarioRepository.save(Usuario(
-            email          = "marcos.diaz@agendify.com",
-            contrasenaHash = "1234",
-            nombreCompleto = "Marcos Díaz",
-            telefono       = "1166554433",
-            roles          = mutableSetOf(rolProfesional, rolCliente, rolAsistente)
-        ))
-
-        // ============================================================
-        // PERFILES PROFESIONAL
-        // ============================================================
-
-        val perfilLopez = perfilProfesionalRepository.save(PerfilProfesional(
-            usuario      = drLopez,
-            especialidad = "Clínica Médica",
-            biografia    = "Médico clínico con más de 15 años de experiencia en medicina preventiva.",
-            urlAvatar    = "https://randomuser.me/api/portraits/men/10.jpg",
-            destacado    = true
-        ))
-
-        val perfilGomez = perfilProfesionalRepository.save(PerfilProfesional(
-            usuario      = draGomez,
-            especialidad = "Psicología",
-            biografia    = "Psicóloga clínica especializada en terapia cognitivo-conductual.",
-            urlAvatar    = "https://randomuser.me/api/portraits/women/10.jpg",
-            destacado    = true
-        ))
-
-        val perfilRamirez = perfilProfesionalRepository.save(PerfilProfesional(
-            usuario      = drRamirez,
-            especialidad = "Derecho Civil",
-            biografia    = "Abogado con especialización en derecho civil y laboral.",
-            urlAvatar    = "https://randomuser.me/api/portraits/men/20.jpg",
-            destacado    = false
-        ))
-
-        val perfilFernandez = perfilProfesionalRepository.save(PerfilProfesional(
-            usuario      = draFernandez,
-            especialidad = "Nutrición",
-            biografia    = "Nutricionista deportiva. Gestiona su agenda de forma autónoma.",
-            urlAvatar    = "https://randomuser.me/api/portraits/women/20.jpg",
-            destacado    = false
-        ))
-
-        val perfilMarcos = perfilProfesionalRepository.save(PerfilProfesional(
-            usuario      = marcosMultiRol,
-            especialidad = "Kinesiología",
-            biografia    = "Kinesiólogo. También usa la plataforma para sacar sus propios turnos.",
-            urlAvatar    = "https://randomuser.me/api/portraits/men/30.jpg",
-            destacado    = false
-        ))
-
-        // ============================================================
-        // PERFILES CLIENTE
-        // ============================================================
-
-        val clienteSantiago  = perfilClienteRepository.save(PerfilCliente(usuario = santiago))
-        val clienteNahuel    = perfilClienteRepository.save(PerfilCliente(usuario = nahuel))
-        val clienteJonathan  = perfilClienteRepository.save(PerfilCliente(usuario = jonathan))
-        val clienteLucia     = perfilClienteRepository.save(PerfilCliente(usuario = lucia))
-        // drRamirez también tiene perfil cliente (multi-rol)
-        val clienteRamirez   = perfilClienteRepository.save(PerfilCliente(usuario = drRamirez, notas = "Paciente con alergia a AINE"))
-        val clienteMarcos    = perfilClienteRepository.save(PerfilCliente(usuario = marcosMultiRol))
-
-        // ============================================================
-        // AGENDAS
-        // ============================================================
-
-        val agendaLopez = agendaRepository.save(Agenda(
-            profesional = perfilLopez,
-            nombre      = "Consultorio Dr. López — Clínica Médica",
-            descripcion = "Consultas de clínica médica general y medicina preventiva"
-        ))
-        configuracionHorariaRepository.saveAll(listOf(
-            ConfiguracionHoraria(agenda = agendaLopez, diaSemana = DayOfWeek.MONDAY,    inicioSlot = LocalTime.of(9, 0),  finSlot = LocalTime.of(17, 0), duracionSlotMinutos = 30),
-            ConfiguracionHoraria(agenda = agendaLopez, diaSemana = DayOfWeek.WEDNESDAY, inicioSlot = LocalTime.of(9, 0),  finSlot = LocalTime.of(17, 0), duracionSlotMinutos = 30),
-            ConfiguracionHoraria(agenda = agendaLopez, diaSemana = DayOfWeek.FRIDAY,    inicioSlot = LocalTime.of(9, 0),  finSlot = LocalTime.of(13, 0), duracionSlotMinutos = 30)
-        ))
-
-        val agendaGomez = agendaRepository.save(Agenda(
-            profesional = perfilGomez,
-            nombre      = "Consultorio Dra. Gómez — Psicología",
-            descripcion = "Sesiones individuales y de pareja"
-        ))
-        configuracionHorariaRepository.saveAll(listOf(
-            ConfiguracionHoraria(agenda = agendaGomez, diaSemana = DayOfWeek.TUESDAY,  inicioSlot = LocalTime.of(10, 0), finSlot = LocalTime.of(19, 0), duracionSlotMinutos = 50),
-            ConfiguracionHoraria(agenda = agendaGomez, diaSemana = DayOfWeek.THURSDAY, inicioSlot = LocalTime.of(10, 0), finSlot = LocalTime.of(19, 0), duracionSlotMinutos = 50)
-        ))
-
-        val agendaRamirez = agendaRepository.save(Agenda(
-            profesional = perfilRamirez,
-            nombre      = "Estudio Jurídico Ramírez",
-            descripcion = "Asesoramiento legal en derecho civil y laboral"
-        ))
-        configuracionHorariaRepository.saveAll(listOf(
-            ConfiguracionHoraria(agenda = agendaRamirez, diaSemana = DayOfWeek.MONDAY,    inicioSlot = LocalTime.of(8, 0), finSlot = LocalTime.of(18, 0), duracionSlotMinutos = 45),
-            ConfiguracionHoraria(agenda = agendaRamirez, diaSemana = DayOfWeek.TUESDAY,   inicioSlot = LocalTime.of(8, 0), finSlot = LocalTime.of(18, 0), duracionSlotMinutos = 45),
-            ConfiguracionHoraria(agenda = agendaRamirez, diaSemana = DayOfWeek.WEDNESDAY, inicioSlot = LocalTime.of(8, 0), finSlot = LocalTime.of(18, 0), duracionSlotMinutos = 45),
-            ConfiguracionHoraria(agenda = agendaRamirez, diaSemana = DayOfWeek.THURSDAY,  inicioSlot = LocalTime.of(8, 0), finSlot = LocalTime.of(18, 0), duracionSlotMinutos = 45),
-            ConfiguracionHoraria(agenda = agendaRamirez, diaSemana = DayOfWeek.FRIDAY,    inicioSlot = LocalTime.of(8, 0), finSlot = LocalTime.of(14, 0), duracionSlotMinutos = 45)
-        ))
-
-        val agendaFernandez = agendaRepository.save(Agenda(
-            profesional = perfilFernandez,
-            nombre      = "Consultoría Nutricional — Dra. Fernández",
-            descripcion = "Planes personalizados de alimentación y seguimiento"
-        ))
-        configuracionHorariaRepository.saveAll(listOf(
-            ConfiguracionHoraria(agenda = agendaFernandez, diaSemana = DayOfWeek.MONDAY,    inicioSlot = LocalTime.of(9, 0),  finSlot = LocalTime.of(18, 0), duracionSlotMinutos = 40),
-            ConfiguracionHoraria(agenda = agendaFernandez, diaSemana = DayOfWeek.WEDNESDAY, inicioSlot = LocalTime.of(9, 0),  finSlot = LocalTime.of(18, 0), duracionSlotMinutos = 40),
-            ConfiguracionHoraria(agenda = agendaFernandez, diaSemana = DayOfWeek.FRIDAY,    inicioSlot = LocalTime.of(9, 0),  finSlot = LocalTime.of(13, 0), duracionSlotMinutos = 40)
-        ))
-
-        // ============================================================
-        // TURNOS
-        // ============================================================
-
-        // Pasados — COMPLETADOS
-        val t1 = turnoRepository.save(Turno(
-            agenda         = agendaLopez,
-            cliente        = clienteSantiago,
-            iniciaEn       = LocalDateTime.of(2026, 4, 6, 9, 0),
-            duracionMinutos = 30,
-            estado         = EstadoTurno.COMPLETADO
-        ))
-        val t2 = turnoRepository.save(Turno(
-            agenda         = agendaGomez,
-            cliente        = clienteLucia,
-            iniciaEn       = LocalDateTime.of(2026, 4, 8, 10, 0),
-            duracionMinutos = 50,
-            estado         = EstadoTurno.COMPLETADO
-        ))
-        val t3 = turnoRepository.save(Turno(
-            agenda         = agendaRamirez,
-            cliente        = clienteNahuel,
-            iniciaEn       = LocalDateTime.of(2026, 4, 7, 8, 0),
-            duracionMinutos = 45,
-            estado         = EstadoTurno.COMPLETADO
-        ))
-
-        // Pasado — CANCELADO
-        turnoRepository.save(Turno(
-            agenda         = agendaLopez,
-            cliente        = clienteJonathan,
-            iniciaEn       = LocalDateTime.of(2026, 4, 6, 9, 30),
-            duracionMinutos = 30,
-            estado         = EstadoTurno.CANCELADO
-        ))
-
-        // Próximos — CONFIRMADOS
-        turnoRepository.save(Turno(
-            agenda         = agendaLopez,
-            cliente        = clienteSantiago,
-            iniciaEn       = LocalDateTime.of(2026, 4, 15, 9, 0),
-            duracionMinutos = 30,
-            estado         = EstadoTurno.CONFIRMADO
-        ))
-        turnoRepository.save(Turno(
-            agenda         = agendaLopez,
-            cliente        = clienteNahuel,
-            iniciaEn       = LocalDateTime.of(2026, 4, 15, 9, 30),
-            duracionMinutos = 30,
-            estado         = EstadoTurno.CONFIRMADO
-        ))
-        turnoRepository.save(Turno(
-            agenda         = agendaGomez,
-            cliente        = clienteJonathan,
-            iniciaEn       = LocalDateTime.of(2026, 4, 17, 10, 0),
-            duracionMinutos = 50,
-            estado         = EstadoTurno.CONFIRMADO
-        ))
-
-        // Próximos — PENDIENTES
-        turnoRepository.save(Turno(
-            agenda         = agendaGomez,
-            cliente        = clienteMarcos,
-            iniciaEn       = LocalDateTime.of(2026, 4, 17, 10, 50),
-            duracionMinutos = 50,
-            estado         = EstadoTurno.PENDIENTE
-        ))
-        turnoRepository.save(Turno(
-            agenda         = agendaRamirez,
-            cliente        = clienteRamirez,   // profesional reservando como cliente
-            iniciaEn       = LocalDateTime.of(2026, 4, 21, 8, 0),
-            duracionMinutos = 45,
-            estado         = EstadoTurno.PENDIENTE
-        ))
-        turnoRepository.save(Turno(
-            agenda         = agendaFernandez,
-            cliente        = clienteSantiago,
-            iniciaEn       = LocalDateTime.of(2026, 4, 20, 9, 0),
-            duracionMinutos = 40,
-            estado         = EstadoTurno.PENDIENTE
-        ))
-
-        // ============================================================
-        // PAGOS (mock — solo para los turnos completados)
-        // ============================================================
-
-        pagoRepository.save(Pago(turno = t1, monto = BigDecimal("3500.00"), estado = EstadoPago.APROBADO, referenciaProveedorMock = "MOCK-001", pagadoEn = t1.iniciaEn.plusMinutes(30)))
-        pagoRepository.save(Pago(turno = t2, monto = BigDecimal("5000.00"), estado = EstadoPago.APROBADO, referenciaProveedorMock = "MOCK-002", pagadoEn = t2.iniciaEn.plusMinutes(50)))
-        pagoRepository.save(Pago(turno = t3, monto = BigDecimal("4200.00"), estado = EstadoPago.APROBADO, referenciaProveedorMock = "MOCK-003", pagadoEn = t3.iniciaEn.plusMinutes(45)))
+        val configs = listOf(DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY,
+                             DayOfWeek.THURSDAY, DayOfWeek.FRIDAY).map { dia ->
+            ConfiguracionHoraria(
+                agenda              = agenda,
+                diaSemana           = dia,
+                inicioSlot          = LocalTime.of(9, 0),
+                finSlot             = LocalTime.of(20, 0),
+                duracionSlotMinutos = 45
+            )
+        }
+        configuracionHorariaRepository.saveAll(configs)
+        return ProfRecord(u, perfil, agenda)
     }
 }

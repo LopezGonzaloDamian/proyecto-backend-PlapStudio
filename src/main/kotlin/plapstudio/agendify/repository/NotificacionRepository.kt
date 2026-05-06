@@ -9,5 +9,6 @@ import java.util.UUID
 @Repository
 interface NotificacionRepository : JpaRepository<Notificacion, UUID> {
     fun findByUsuario(usuario: Usuario): List<Notificacion>
+    fun findByUsuarioOrderByEnviadaEnDesc(usuario: Usuario): List<Notificacion>
     fun findByUsuarioAndLeidaFalse(usuario: Usuario): List<Notificacion>
 }
