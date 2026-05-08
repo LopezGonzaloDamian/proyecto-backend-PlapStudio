@@ -14,7 +14,8 @@ class UsuarioController(
 ) {
 
     @GetMapping
-    fun getAll(): List<UsuarioDto> = usuarioService.findAll().map { mapper.toUsuarioDto(it) }
+    fun getAll(@RequestParam(required = false) rol: String?): List<UsuarioDto> =
+        (rol?.let { usuarioService.findByRol(it) } ?: usuarioService.findAll()).map { mapper.toUsuarioDto(it) }
 
     @GetMapping("/{id}")
     fun getById(@PathVariable id: Long): UsuarioDto =

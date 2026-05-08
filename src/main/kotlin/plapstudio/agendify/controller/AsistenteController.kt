@@ -4,7 +4,11 @@ import org.springframework.web.bind.annotation.*
 import plapstudio.agendify.dto.AsistenteAsignacionDto
 import plapstudio.agendify.dto.AsistenteAsignarRequest
 import plapstudio.agendify.dto.Mapper
+import plapstudio.agendify.dto.TurnoCancelRequest
+import plapstudio.agendify.dto.TurnoCreateRequest
 import plapstudio.agendify.dto.TurnoDto
+import plapstudio.agendify.dto.TurnoNotasRequest
+import plapstudio.agendify.dto.TurnoUpdateRequest
 import plapstudio.agendify.service.AsistenteService
 import plapstudio.agendify.service.TurnoService
 import java.util.UUID
@@ -29,6 +33,42 @@ class AsistenteController(
     @GetMapping("/{usuarioId}/turnos")
     fun turnos(@PathVariable usuarioId: Long): List<TurnoDto> =
         service.turnosDeAsistente(usuarioId).map { mapper.toTurnoDto(it, turnoService.pagoDe(it)) }
+
+    @PostMapping("/{usuarioId}/turnos")
+    fun reservarTurno(@PathVariable usuarioId: Long, @RequestBody req: TurnoCreateRequest): TurnoDto {
+        val turno = service.reservarTurno(usuarioId, req)
+        return mapper.toTurnoDto(turno, turnoService.pagoDe(turno))
+    }
+
+    @PutMapping("/{usuarioId}/turnos/{turnoId}")
+    fun modificarTurno(
+        @PathVariable usuarioId: Long,
+        @PathVariable turnoId: UUID,
+        @RequestBody req: TurnoUpdateRequest
+    ): TurnoDto {
+        val turno = service.modificarTurno(usuarioId, turnoId, req)
+        return mapper.toTurnoDto(turno, turnoService.pagoDe(turno))
+    }
+
+    @PatchMapping("/{usuarioId}/turnos/{turnoId}/notas")
+    fun actualizarNotasTurno(
+        @PathVariable usuarioId: Long,
+        @PathVariable turnoId: UUID,
+        @RequestBody req: TurnoNotasRequest
+    ): TurnoDto {
+        val turno = service.actualizarNotasTurno(usuarioId, turnoId, req.notas)
+        return mapper.toTurnoDto(turno, turnoService.pagoDe(turno))
+    }
+
+    @PatchMapping("/{usuarioId}/turnos/{turnoId}/cancelar")
+    fun cancelarTurno(
+        @PathVariable usuarioId: Long,
+        @PathVariable turnoId: UUID,
+        @RequestBody(required = false) req: TurnoCancelRequest?
+    ): TurnoDto {
+        val turno = service.cancelarTurno(usuarioId, turnoId, req?.motivo)
+        return mapper.toTurnoDto(turno, turnoService.pagoDe(turno))
+    }
 
     @PostMapping
     fun asignar(@RequestBody req: AsistenteAsignarRequest): AsistenteAsignacionDto =
