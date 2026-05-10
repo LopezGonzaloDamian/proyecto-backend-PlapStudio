@@ -13,6 +13,8 @@ class UsuarioService(private val usuarioRepository: UsuarioRepository) {
 
     fun findAll(): List<Usuario> = usuarioRepository.findAll()
 
+    fun findByRol(rol: String): List<Usuario> = usuarioRepository.findByRolesNombreIgnoreCase(rol)
+
     fun create(usuario: Usuario): Usuario = usuarioRepository.save(usuario)
 
     fun update(id: Long, datos: Usuario): Usuario {
