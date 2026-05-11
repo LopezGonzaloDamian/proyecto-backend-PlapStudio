@@ -8,7 +8,7 @@ server:
     include-stacktrace: never
 spring:
   datasource:
-    url: jdbc:postgresql://0.0.0.0:5432/db_agendify
+    url: jdbc:postgresql://localhost:5432/db_agendify
     username: agendify
     password: agendify
     driver-class-name: org.postgresql.Driver
@@ -23,6 +23,13 @@ spring:
 logging:
   level:
     root: INFO
+agendify:
+  chatbot:
+    gemini:
+      enabled: true
+      base-url: https://generativelanguage.googleapis.com
+      api-key: ${GEMINI_API_KEY:}
+      model: gemini-2.0-flash
 
 ---
 spring:
@@ -31,3 +38,10 @@ spring:
       on-profile: docker
   datasource:
     url: jdbc:postgresql://postgres:5432/db_agendify
+agendify:
+  chatbot:
+    gemini:
+      enabled: true
+      base-url: https://generativelanguage.googleapis.com
+      api-key: ${GEMINI_API_KEY:}
+      model: gemini-2.0-flash
