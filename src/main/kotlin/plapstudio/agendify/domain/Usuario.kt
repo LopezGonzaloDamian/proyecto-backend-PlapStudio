@@ -17,6 +17,8 @@ class Usuario(
     var contrasenaHash: String,
     var nombreCompleto: String,
     var telefono: String,
+    @Column(unique = true)
+    var googleSub: String? = null,
     var activo: Boolean = true,
     val creadoEn: LocalDateTime = LocalDateTime.now(),
 
@@ -43,4 +45,5 @@ class Usuario(
     fun esCliente()     = tieneRol("CLIENTE")
     fun esAsistente()   = tieneRol("ASISTENTE")
     fun esAdmin()       = tieneRol("ADMIN")
+    fun requiereSeleccionRol() = tieneRol("SIN_DEFINIR")
 }

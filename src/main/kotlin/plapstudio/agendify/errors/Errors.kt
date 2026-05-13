@@ -12,5 +12,8 @@ class NotFoundException(msg: String) : RuntimeException(msg)
 @ResponseStatus(HttpStatus.UNAUTHORIZED)
 class UnauthorizedException(msg: String = "No autorizado") : RuntimeException(msg)
 
+@ResponseStatus(HttpStatus.FORBIDDEN)
+class ForbiddenException(msg: String = "No permitido") : RuntimeException(msg)
+
 @ResponseStatus(HttpStatus.CONFLICT)
 class ConflictException(msg: String) : RuntimeException(msg)

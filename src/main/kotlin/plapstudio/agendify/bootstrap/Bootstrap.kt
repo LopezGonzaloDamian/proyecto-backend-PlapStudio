@@ -55,6 +55,7 @@ class Bootstrap {
         val rolProfesional = rolRepository.save(Rol(nombre = "PROFESIONAL", descripcion = "Dueño de una o más agendas"))
         val rolAsistente   = rolRepository.save(Rol(nombre = "ASISTENTE",   descripcion = "Colabora en la gestión de una agenda"))
         val rolCliente     = rolRepository.save(Rol(nombre = "CLIENTE",     descripcion = "Reserva turnos en agendas"))
+        rolRepository.save(Rol(nombre = "SIN_DEFINIR", descripcion = "Usuario autenticado que todavia no eligio su rol"))
 
         // ─── ADMIN ──────────────────────────────────────────────────────────
         usuarioRepository.save(Usuario(

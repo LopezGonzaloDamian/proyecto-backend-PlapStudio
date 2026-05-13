@@ -24,6 +24,13 @@ logging:
   level:
     root: INFO
 agendify:
+  auth:
+    token-secret: ${AGENDIFY_AUTH_SECRET:agendify-dev-secret}
+    token-days: 30
+    google:
+      enabled: true
+      client-id: ${GOOGLE_CLIENT_ID:${VITE_GOOGLE_CLIENT_ID:}}
+      token-info-base-url: https://oauth2.googleapis.com
   chatbot:
     gemini:
       enabled: true
@@ -39,6 +46,13 @@ spring:
   datasource:
     url: jdbc:postgresql://postgres:5432/db_agendify
 agendify:
+  auth:
+    token-secret: ${AGENDIFY_AUTH_SECRET:agendify-dev-secret}
+    token-days: 30
+    google:
+      enabled: true
+      client-id: ${GOOGLE_CLIENT_ID:${VITE_GOOGLE_CLIENT_ID:}}
+      token-info-base-url: https://oauth2.googleapis.com
   chatbot:
     gemini:
       enabled: true

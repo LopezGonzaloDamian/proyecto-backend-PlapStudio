@@ -1,6 +1,7 @@
 package plapstudio.agendify.controller
 
 import org.springframework.web.bind.annotation.*
+import plapstudio.agendify.auth.AuthGuard
 import plapstudio.agendify.dto.Mapper
 import plapstudio.agendify.dto.ProfesionalDto
 import plapstudio.agendify.dto.ProfesionalSummaryDto
@@ -12,7 +13,8 @@ import plapstudio.agendify.service.PerfilProfesionalService
 @CrossOrigin("*")
 class PerfilProfesionalController(
     private val service: PerfilProfesionalService,
-    private val mapper:  Mapper
+    private val mapper:  Mapper,
+    private val authGuard: AuthGuard
 ) {
 
     @GetMapping
@@ -36,6 +38,7 @@ class PerfilProfesionalController(
 
     @PutMapping("/{id}")
     fun actualizar(@PathVariable id: Long, @RequestBody req: ProfesionalUpdateRequest): ProfesionalDto {
+        authGuard.requireProfesional(id)
         val perfil  = service.update(id, req)
         val agendas = service.agendasDe(id)
         return mapper.toProfesionalDto(perfil, agendas)

@@ -14,7 +14,8 @@ class Mapper {
         activo              = usuario.activo,
         roles               = usuario.roles.map { it.nombre },
         perfilProfesionalId = usuario.perfilProfesional?.id,
-        perfilClienteId     = usuario.perfilCliente?.id
+        perfilClienteId     = usuario.perfilCliente?.id,
+        requiereSeleccionRol = usuario.requiereSeleccionRol()
     )
 
     fun toProfesionalDto(perfil: PerfilProfesional, agendas: List<Agenda>): ProfesionalDto = ProfesionalDto(
