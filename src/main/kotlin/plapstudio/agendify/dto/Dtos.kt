@@ -17,7 +17,7 @@ data class LoginRequest(
 )
 
 data class GoogleLoginRequest(
-    val credential: String
+    val credential: String = ""
 )
 
 data class RegistroRequest(
@@ -30,7 +30,7 @@ data class RegistroRequest(
 )
 
 data class SeleccionRolRequest(
-    val rol: String,
+    val rol: String = "",
     val especialidad: String? = null
 )
 
