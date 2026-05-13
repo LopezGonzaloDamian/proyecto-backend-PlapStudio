@@ -1,5 +1,6 @@
 package plapstudio.agendify.chatbot
 
+import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import plapstudio.agendify.errors.BusinessException
@@ -14,10 +15,13 @@ class ChatbotService(
     @Value("\${agendify.chatbot.gemini.model:gemini-2.0-flash}") private val geminiModel: String
 ) {
 
+    private val logger = LoggerFactory.getLogger(javaClass)
+
     fun reply(request: ChatbotRequest): ChatbotResponse {
         val sanitizedMessages = request.messages
             .map { ChatbotMessage(role = it.role.trim(), content = it.content.trim()) }
             .filter { it.content.isNotBlank() }
+            .takeLast(8)
 
         if (sanitizedMessages.isEmpty()) {
             throw BusinessException("El chatbot necesita al menos un mensaje para responder")
@@ -25,6 +29,13 @@ class ChatbotService(
 
         val sanitizedRequest = request.copy(messages = sanitizedMessages)
         val staticReply = chatbotKnowledgeBase.buildReply(sanitizedRequest)
+
+        if (chatbotKnowledgeBase.shouldBypassModel(sanitizedRequest)) {
+            return ChatbotResponse(
+                message = staticReply,
+                source = "static-help"
+            )
+        }
 
         if (!geminiEnabled || geminiApiKey.isBlank()) {
             return ChatbotResponse(
@@ -46,6 +57,8 @@ class ChatbotService(
                     }
                 )
             )
+        }.onFailure { error ->
+            logger.warn("Gemini no pudo responder y se usa fallback estatico: {}", error.message)
         }.getOrNull()
 
         if (!geminiReply.isNullOrBlank()) {

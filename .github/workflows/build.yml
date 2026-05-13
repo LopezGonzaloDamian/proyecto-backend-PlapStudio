@@ -28,6 +28,9 @@ jobs:
         run: chmod +x ./gradlew
 
       - name: Execute tests with coverage
+        env:
+          GEMINI_API_KEY: ${{ secrets.API_KEY_GEMINI }}
+          API_KEY_GEMINI: ${{ secrets.API_KEY_GEMINI }}
         run: ./gradlew runOnGitHub
 
       - name: Check JaCoCo report

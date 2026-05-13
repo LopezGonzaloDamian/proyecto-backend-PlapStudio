@@ -8,142 +8,171 @@ import java.util.Locale
 class ChatbotKnowledgeBase {
 
     fun buildReply(request: ChatbotRequest): String {
-        val latestMessage = request.messages.lastOrNull { it.role.equals("user", ignoreCase = true) }
-            ?.content
-            ?.trim()
-            .orEmpty()
-
+        val latestMessage = latestUserMessage(request)
         val normalized = latestMessage.normalize()
         val role = request.userRole?.uppercase(Locale.getDefault())
 
         if (latestMessage.isBlank()) {
-            return greetingFor(role, request.authenticated)
+            return greetingReply()
         }
 
         return when {
-            normalized.matchesHelpIntent() -> greetingFor(role, request.authenticated)
+            normalized.matchesSensitiveIntent() -> sensitiveReply()
+            normalized.matchesGreetingIntent() -> greetingReply()
+            normalized.matchesCreateAgendaIntent() -> createAgendaReply(request.authenticated)
+            normalized.matchesBookAppointmentIntent() -> bookAppointmentReply(request.authenticated)
+            normalized.matchesSearchProfessionalIntent() -> searchProfessionalReply(request.authenticated)
+            normalized.matchesRolesOverviewIntent() -> rolesOverviewReply()
             normalized.matchesAvailabilityIntent() -> availabilityReply(request.authenticated)
-            normalized.matchesBookingIntent() -> bookingReply(request.authenticated)
+            normalized.matchesCancellationIntent() -> cancellationReply(request.authenticated)
             normalized.matchesPaymentIntent() -> paymentReply(request.authenticated)
-            normalized.matchesStatusIntent() -> statusReply(request.authenticated)
             normalized.matchesRoleIntent("CLIENTE") -> clientReply(request.authenticated)
             normalized.matchesRoleIntent("PROFESIONAL") -> professionalReply(request.authenticated)
             normalized.matchesRoleIntent("ASISTENTE") -> assistantReply(request.authenticated)
             normalized.matchesRoleIntent("ADMIN") -> adminReply()
             normalized.matchesAuthenticationIntent() -> authenticationReply()
+            normalized.matchesFeaturesIntent() -> featuresReply()
             else -> fallbackReply(role, request.authenticated)
         }
     }
 
-    private fun greetingFor(role: String?, authenticated: Boolean): String {
-        val roleLine = when (role) {
-            "CLIENTE" -> "Puedo orientarte como cliente para buscar disponibilidad, reservar o cancelar turnos."
-            "PROFESIONAL" -> "Puedo orientarte como profesional para gestionar agendas, horarios, clientes y actividad."
-            "ASISTENTE" -> "Puedo orientarte como asistente para editar la agenda y administrar turnos del profesional."
-            "ADMIN" -> "Puedo orientarte con el alcance general del sistema y los roles de Agendify."
-            else -> "Puedo orientarte sobre reservas, disponibilidad, pagos mockeados y roles dentro de Agendify."
-        }
+    fun shouldBypassModel(request: ChatbotRequest): Boolean =
+        latestUserMessage(request).normalize().matchesSensitiveIntent()
 
-        val authLine = if (authenticated) {
-            "Veo tu consulta como usuario autenticado, pero esta demo responde con ayuda guiada y no accede a datos personales."
+    private fun latestUserMessage(request: ChatbotRequest): String =
+        request.messages.lastOrNull { it.role.equals("user", ignoreCase = true) }
+            ?.content
+            ?.trim()
+            .orEmpty()
+
+    private fun greetingReply(): String = """
+        Hola, soy el chatbot de Agendify. ¿En que puedo ayudarte?
+    """.trimIndent()
+
+    private fun createAgendaReply(authenticated: Boolean): String {
+        val authHint = if (authenticated) {
+            "Si ya ingresaste como profesional, el siguiente paso es entrar a tu espacio de trabajo y completar la configuracion."
         } else {
-            "Si una accion requiere cuenta o datos reales, te lo voy a indicar claramente."
+            "Para crear una agenda real, primero vas a necesitar iniciar sesion como profesional."
         }
 
         return """
-            Hola, soy el asistente de Agendify.
-            $roleLine
-            $authLine
-            Podes preguntarme por disponibilidad, reservas, estados, pagos mockeados o que puede hacer cada rol.
+            Para crear una agenda en Agendify, el flujo general es este:
+            1. Ingresar como profesional.
+            2. Crear una agenda nueva o habilitar una existente.
+            3. Definir dias, horarios disponibles y duracion de turnos.
+            4. Guardar la configuracion para que despues impacte en la disponibilidad.
+            $authHint
+        """.trimIndent()
+    }
+
+    private fun bookAppointmentReply(authenticated: Boolean): String {
+        val authHint = if (authenticated) {
+            "Si ya ingresaste como cliente, despues de elegir el horario podes continuar con la reserva dentro del flujo normal del producto."
+        } else {
+            "Si queres concretar una reserva real, el paso natural es iniciar sesion como cliente."
+        }
+
+        return """
+            Para agendar un turno en Agendify, normalmente harías esto:
+            1. Buscar un profesional.
+            2. Revisar su disponibilidad.
+            3. Elegir un dia y un horario.
+            4. Confirmar la reserva dentro del flujo del producto.
+            $authHint
+        """.trimIndent()
+    }
+
+    private fun searchProfessionalReply(authenticated: Boolean): String {
+        val authHint = if (authenticated) {
+            "Con sesion iniciada, el recorrido mas natural es usar tu dashboard de cliente para explorar profesionales y favoritos."
+        } else {
+            "No siempre hace falta iniciar sesion para explorar, pero si para avanzar con acciones personales como reservar o gestionar tus turnos."
+        }
+
+        return """
+            Para buscar un profesional en Agendify, la idea es explorar los perfiles disponibles y elegir el que mejor se ajuste a lo que necesitas.
+            Una vez que encontraste uno, podes revisar su disponibilidad y seguir con la reserva.
+            $authHint
         """.trimIndent()
     }
 
     private fun availabilityReply(authenticated: Boolean): String {
         val authHint = if (authenticated) {
-            "Si ya tenes sesion iniciada, el siguiente paso seria entrar a la agenda o al dashboard correspondiente."
+            "Si ya tenes cuenta iniciada, el lugar para avanzar es la agenda o el dashboard correspondiente a tu rol."
         } else {
-            "Para consultar una agenda especifica o continuar una reserva real, probablemente necesites iniciar sesion."
+            "Si queres reservar o consultar una agenda puntual, puede hacer falta iniciar sesion segun el flujo que quieras completar."
         }
 
         return """
-            En Agendify la disponibilidad se basa en la agenda del profesional, sus horarios configurados y los turnos ya ocupados.
-            Un cliente puede ver horarios disponibles antes de reservar.
-            Un profesional o asistente puede definir dias, franjas horarias y duracion de turnos.
+            La disponibilidad en Agendify depende de la agenda del profesional, sus horarios configurados y los turnos que ya estan ocupados.
+            El cliente ve horarios disponibles antes de reservar, y el profesional o asistente puede organizar dias, franjas y duracion de turnos.
             $authHint
         """.trimIndent()
     }
 
-    private fun bookingReply(authenticated: Boolean): String {
+    private fun rolesOverviewReply(): String = """
+        En Agendify, cada rol tiene un alcance distinto:
+        1. Cliente: puede buscar profesionales, reservar, ver o cancelar turnos.
+        2. Profesional: administra agendas, horarios, clientes y actividad.
+        3. Asistente: ayuda con la operacion diaria, editando agenda y gestionando turnos.
+        4. Admin: supervisa la plataforma y sus configuraciones generales.
+        Si queres, te explico con mas detalle cualquiera de esos roles.
+    """.trimIndent()
+
+    private fun cancellationReply(authenticated: Boolean): String {
         val authHint = if (authenticated) {
-            "Como esta es una guia conversacional, puedo orientarte en el flujo aunque no ejecute la reserva desde el chat."
+            "Con sesion iniciada, la cancelacion real deberia hacerse desde el espacio donde ves tus turnos o administras la agenda."
         } else {
-            "Si queres avanzar con una reserva real, primero deberias iniciar sesion como cliente."
+            "Para cancelar un turno propio, lo esperable es iniciar sesion con la cuenta correspondiente."
         }
 
         return """
-            El flujo de reserva en Agendify es: buscar un profesional, revisar disponibilidad y elegir un turno.
-            Despues se confirma la solicitud dentro del flujo del producto.
-            El cliente puede visualizar o cancelar sus turnos, y el profesional gestiona lo que ocurre en su agenda.
+            En Agendify existe el flujo para ver y cancelar turnos.
+            El cliente puede gestionar sus reservas, y el profesional o asistente puede administrar la operacion diaria de la agenda.
             $authHint
         """.trimIndent()
     }
 
     private fun paymentReply(authenticated: Boolean): String {
         val authHint = if (authenticated) {
-            "La wiki describe pagos y cobros online en modo mock, asi que la explicacion se mantiene dentro de ese alcance."
+            "Aunque tengas sesion iniciada, en esta etapa el chatbot solo explica el flujo y no consulta pagos reales."
         } else {
-            "Si la reserva requiere continuar con un pago mockeado, el sistema deberia pedirte ingresar con tu cuenta."
+            "Si el flujo requiere continuar con una reserva o un pago mockeado, seguramente tengas que ingresar con tu cuenta."
         }
 
         return """
-            Segun la wiki, Agendify contempla pagos, facturacion y cobros online en modo mock.
-            Eso significa que existe el flujo de negocio, pero en esta etapa se trata como una simulacion del proceso.
-            Si hablas de sena, hoy conviene entenderla como parte de ese flujo de pago o confirmacion mockeada.
-            $authHint
-        """.trimIndent()
-    }
-
-    private fun statusReply(authenticated: Boolean): String {
-        val authHint = if (authenticated) {
-            "Con cuenta iniciada, el dashboard correspondiente seria el lugar para revisar estados reales."
-        } else {
-            "Sin sesion iniciada, el chatbot solo puede darte una explicacion general del flujo."
-        }
-
-        return """
-            Un turno puede atravesar distintos estados operativos, como reserva activa, cancelacion o confirmacion dentro del flujo del sistema.
-            El cliente consulta sus turnos y notificaciones, mientras que el profesional o asistente administra la operacion diaria.
-            Agendify tambien centraliza pagos mockeados, recordatorios y actividad relacionada.
+            En Agendify, pagos, cobros y senas forman parte de un flujo mockeado.
+            Eso significa que la funcionalidad existe a nivel producto, pero hoy se maneja como simulacion dentro del alcance actual.
+            Si hablas de sena, conviene entenderla como parte de una confirmacion o de un pago mockeado.
             $authHint
         """.trimIndent()
     }
 
     private fun clientReply(authenticated: Boolean): String {
         val authHint = if (authenticated) {
-            "Como cliente autenticado, el recorrido natural es revisar tu dashboard, favoritos y tus turnos."
+            "Como cliente autenticado, el recorrido normal es revisar profesionales, tus reservas, cancelaciones y notificaciones."
         } else {
-            "Si queres usar funciones personales del cliente, tenes que iniciar sesion."
+            "Para usar funciones personales como ver tus turnos o avanzar con una reserva, hace falta iniciar sesion."
         }
 
         return """
-            El cliente en Agendify puede buscar profesionales, reservar, visualizar o cancelar turnos.
-            Tambien recibe notificaciones y participa del flujo de pago online mockeado.
-            El objetivo es que la reserva se haga desde una experiencia digital centralizada y simple.
+            El cliente puede buscar profesionales, reservar, ver o cancelar turnos.
+            Tambien recibe notificaciones y participa del flujo de pago mockeado.
             $authHint
         """.trimIndent()
     }
 
     private fun professionalReply(authenticated: Boolean): String {
         val authHint = if (authenticated) {
-            "Como profesional autenticado, el recorrido natural es administrar tu agenda y revisar clientes, pagos y actividad."
+            "Como profesional autenticado, lo esperable es trabajar desde tu dashboard para administrar agendas, clientes y actividad."
         } else {
-            "Para operar sobre agendas reales, Agendify requiere iniciar sesion."
+            "Para operar sobre agendas reales, se necesita ingresar con un usuario profesional."
         }
 
         return """
-            El profesional es dueno de una o mas agendas y administra su operacion diaria dentro de Agendify.
-            Puede crear o dar de baja agendas, definir horarios, dias disponibles y duracion de turnos.
-            Tambien gestiona clientes, historial, documentos, notificaciones, pagos y actividad general.
+            El profesional administra una o mas agendas dentro de Agendify.
+            Puede crear o dar de baja agendas, definir horarios, dias disponibles, duracion de turnos y gestionar clientes, historial, documentos y actividad.
             $authHint
         """.trimIndent()
     }
@@ -152,67 +181,89 @@ class ChatbotKnowledgeBase {
         val authHint = if (authenticated) {
             "Con sesion iniciada, el asistente deberia trabajar desde la agenda asociada al profesional."
         } else {
-            "Si necesitas editar informacion real, primero deberias ingresar con un usuario habilitado."
+            "Para editar turnos o informacion real, primero hay que iniciar sesion con un usuario habilitado."
         }
 
         return """
-            El asistente colabora con la gestion operativa de una agenda profesional.
-            Puede crear, modificar o dar de baja turnos y tambien editar la agenda del profesional.
-            Su funcion es ayudar en la organizacion diaria de pacientes o clientes sin asumir el rol de administrador general.
+            El asistente ayuda con la gestion operativa de la agenda profesional.
+            Puede crear, modificar o dar de baja turnos, y tambien editar la agenda del profesional para acompañar la organizacion diaria.
             $authHint
         """.trimIndent()
     }
 
     private fun adminReply(): String = """
-        El admin supervisa la plataforma y gestiona configuraciones globales del SaaS.
-        Su alcance es transversal al sistema, no solo sobre una agenda puntual.
-        En esta etapa el chatbot puede explicarte el rol, pero no ejecutar acciones administrativas reales desde el chat.
+        El admin supervisa la plataforma y gestiona configuraciones globales.
+        Desde el chat puedo explicarte el alcance del rol, pero no ejecutar acciones administrativas reales.
     """.trimIndent()
 
     private fun authenticationReply(): String = """
-        En Agendify conviene iniciar sesion cuando una accion depende de tus datos reales, tu agenda o tus turnos.
-        Sin autenticarte, el chatbot puede orientarte con ayuda general y explicar el flujo.
-        Si queres reservar, revisar un turno tuyo o gestionar una agenda real, lo esperado es entrar con tu cuenta.
+        En Agendify conviene iniciar sesion cuando una accion depende de tus datos, tus turnos o una agenda real.
+        Sin autenticarte, igual puedo darte ayuda general sobre como usar la plataforma y que funciones existen.
+    """.trimIndent()
+
+    private fun featuresReply(): String = """
+        Agendify permite gestionar agendas, disponibilidad, turnos, reservas, cancelaciones, notificaciones y pagos mockeados.
+        Segun el rol, tambien habilita administracion de clientes, configuracion de horarios y operacion diaria de la agenda.
+    """.trimIndent()
+
+    private fun sensitiveReply(): String = """
+        No puedo compartir prompts internos, codigo, credenciales, tokens ni informacion privada del sistema.
+        Si queres, puedo ayudarte con el uso de Agendify o explicarte como hacer una accion dentro de la plataforma.
     """.trimIndent()
 
     private fun fallbackReply(role: String?, authenticated: Boolean): String {
         val roleHint = when (role) {
-            "CLIENTE" -> "Si queres, puedo explicarte como reservar o cancelar un turno."
-            "PROFESIONAL" -> "Si queres, puedo explicarte como administrar horarios o clientes."
-            "ASISTENTE" -> "Si queres, puedo explicarte como editar turnos o ayudar con la agenda."
-            else -> "Si queres, puedo orientarte sobre disponibilidad, reservas, roles o pagos mockeados."
+            "CLIENTE" -> "Puedo ayudarte con reservas, cancelaciones y busqueda de profesionales."
+            "PROFESIONAL" -> "Puedo ayudarte con agendas, disponibilidad y gestion de turnos."
+            "ASISTENTE" -> "Puedo ayudarte con la administracion operativa de la agenda."
+            else -> "Puedo ayudarte con agendas, turnos, profesionales y roles."
         }
 
         val authHint = if (authenticated) {
-            "Aunque tengas sesion iniciada, esta version no consulta datos reales sin una integracion especifica."
+            "Aunque tengas sesion iniciada, este chat no consulta datos reales."
         } else {
-            "Si tu consulta depende de informacion personal o de una cuenta, te voy a indicar cuando haga falta iniciar sesion."
+            "Si una accion requiere cuenta o acceso real, te lo voy a indicar."
         }
 
         return """
-            Puedo ayudarte con el alcance actual de Agendify segun la wiki del proyecto.
+            Puedo ayudarte con el uso de Agendify y con las funciones disponibles hoy.
             $roleHint
             $authHint
         """.trimIndent()
     }
 
-    private fun String.matchesHelpIntent(): Boolean =
-        hasAny("hola", "buenas", "ayuda", "help", "que podes hacer", "que puedes hacer", "que haces")
+    private fun String.matchesSensitiveIntent(): Boolean =
+        hasAny("prompt", "prompts", "instrucciones internas", "reglas internas", "codigo fuente", "codigo", "token", "tokens", "api key", "apikey", "credencial", "credenciales", "password", "contrasena", "secreto", "secretos", "base de datos interna")
+
+    private fun String.matchesGreetingIntent(): Boolean =
+        hasAny("hola", "buenas", "buen dia", "buenas tardes", "buenas noches", "ayuda", "que podes hacer", "que puedes hacer")
+
+    private fun String.matchesCreateAgendaIntent(): Boolean =
+        hasAny("crear agenda", "como crear una agenda", "nueva agenda", "armar agenda", "configurar agenda")
+
+    private fun String.matchesBookAppointmentIntent(): Boolean =
+        hasAny("agendar un turno", "como agendar un turno", "reservar un turno", "como reservo un turno", "sacar turno", "pedir turno")
+
+    private fun String.matchesSearchProfessionalIntent(): Boolean =
+        hasAny("buscar un profesional", "como buscar un profesional", "encontrar profesional", "buscar profesional", "buscar especialista")
 
     private fun String.matchesAvailabilityIntent(): Boolean =
-        hasAny("disponibilidad", "disponible", "horario", "horarios", "agenda", "turnos disponibles", "cuando atiende")
+        hasAny("disponibilidad", "horarios disponibles", "horario disponible", "ver horarios", "agenda disponible", "cuando atiende")
 
-    private fun String.matchesBookingIntent(): Boolean =
-        hasAny("reserv", "sacar turno", "pedir turno", "agendar", "cancelar", "reprogram")
+    private fun String.matchesRolesOverviewIntent(): Boolean =
+        hasAny("que puede hacer cada rol", "que puede hacer cada uno", "que hace cada rol", "roles", "rol cliente", "rol profesional", "rol asistente", "rol admin")
+
+    private fun String.matchesCancellationIntent(): Boolean =
+        hasAny("cancelar turno", "como cancelar un turno", "reprogramar", "cambiar turno", "cancelacion")
 
     private fun String.matchesPaymentIntent(): Boolean =
-        hasAny("sena", "pago", "pagos", "cobro", "cobros", "factura", "facturacion")
-
-    private fun String.matchesStatusIntent(): Boolean =
-        hasAny("estado", "estados", "confirm", "pendiente", "completado", "cancelado", "notificacion", "recordatorio")
+        hasAny("sena", "seña", "pago", "pagos", "cobro", "cobros", "factura", "facturacion")
 
     private fun String.matchesAuthenticationIntent(): Boolean =
-        hasAny("iniciar sesion", "login", "logue", "autentic", "cuenta", "sesion")
+        hasAny("iniciar sesion", "login", "loguear", "autenticacion", "autenticar", "mi cuenta", "sesion")
+
+    private fun String.matchesFeaturesIntent(): Boolean =
+        hasAny("funcionalidades", "funciones", "que hace agendify", "para que sirve", "que puedo hacer")
 
     private fun String.matchesRoleIntent(expectedRole: String): Boolean = when (expectedRole) {
         "CLIENTE" -> hasAny("cliente", "paciente", "usuario final")
