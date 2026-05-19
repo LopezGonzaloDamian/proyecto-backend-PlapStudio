@@ -94,8 +94,11 @@ class Mapper {
         agendaNombre      = turno.agenda.nombre,
         profesionalId     = turno.agenda.profesional.id!!,
         profesionalNombre = turno.agenda.profesional.usuario.nombreCompleto,
-        clienteId         = turno.cliente.id!!,
-        clienteNombre     = turno.cliente.usuario.nombreCompleto,
+        clienteId         = turno.cliente?.id,
+        clienteNombre     = turno.cliente?.usuario?.nombreCompleto ?: turno.clienteExternoNombre ?: "Cliente externo",
+        clienteTelefono   = turno.cliente?.usuario?.telefono ?: turno.clienteExternoTelefono,
+        clienteDni        = turno.clienteExternoDni,
+        clienteEmail      = turno.cliente?.usuario?.email ?: turno.clienteExternoEmail,
         iniciaEn          = turno.iniciaEn,
         duracionMinutos   = turno.duracionMinutos,
         estado            = turno.estado.name,
@@ -109,6 +112,7 @@ class Mapper {
         monto                   = pago.monto,
         moneda                  = pago.moneda,
         estado                  = pago.estado.name,
+        origen                  = pago.origen?.name ?: OrigenPago.EXTERNO.name,
         referenciaProveedorMock = pago.referenciaProveedorMock,
         pagadoEn                = pago.pagadoEn
     )

@@ -164,8 +164,11 @@ data class TurnoDto(
     val agendaNombre: String,
     val profesionalId: Long,
     val profesionalNombre: String,
-    val clienteId: Long,
+    val clienteId: Long?,
     val clienteNombre: String,
+    val clienteTelefono: String?,
+    val clienteDni: String?,
+    val clienteEmail: String?,
     val iniciaEn: LocalDateTime,
     val duracionMinutos: Int,
     val estado: String,
@@ -175,7 +178,11 @@ data class TurnoDto(
 
 data class TurnoCreateRequest(
     val agendaId: UUID,
-    val clienteId: Long,
+    val clienteId: Long? = null,
+    val clienteExternoNombre: String? = null,
+    val clienteExternoTelefono: String? = null,
+    val clienteExternoDni: String? = null,
+    val clienteExternoEmail: String? = null,
     val iniciaEn: LocalDateTime,
     val duracionMinutos: Int,
     val notas: String = "",
@@ -208,6 +215,7 @@ data class PagoDto(
     val monto: BigDecimal,
     val moneda: String,
     val estado: String,
+    val origen: String,
     val referenciaProveedorMock: String?,
     val pagadoEn: LocalDateTime?
 )

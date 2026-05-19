@@ -9,6 +9,7 @@ import plapstudio.agendify.errors.BusinessException
 import plapstudio.agendify.errors.NotFoundException
 import plapstudio.agendify.repository.*
 import java.math.BigDecimal
+import java.math.RoundingMode
 import java.time.LocalDateTime
 import java.util.UUID
 
@@ -50,10 +51,15 @@ class TurnoService(
     @Transactional
     fun reservar(req: TurnoCreateRequest): Turno {
         val agenda  = agendaService.findById(req.agendaId)
-        val cliente = perfilClienteRepository.findById(req.clienteId)
-            .orElseThrow { NotFoundException("Perfil cliente no encontrado con id: ${req.clienteId}") }
-        if (!cliente.usuario.esCliente()) {
+        val cliente = req.clienteId?.let { clienteId ->
+            perfilClienteRepository.findById(clienteId)
+                .orElseThrow { NotFoundException("Perfil cliente no encontrado con id: $clienteId") }
+        }
+        if (cliente != null && !cliente.usuario.esCliente()) {
             throw BusinessException("Solo un cliente puede reservar un turno")
+        }
+        if (cliente == null && (req.clienteExternoNombre.isNullOrBlank() || req.clienteExternoTelefono.isNullOrBlank())) {
+            throw BusinessException("Para un cliente no registrado se requiere nombre y telefono")
         }
         val fecha = req.iniciaEn.toLocalDate()
         val hora  = req.iniciaEn.toLocalTime()
@@ -69,16 +75,25 @@ class TurnoService(
         val turno = turnoRepository.save(Turno(
             agenda          = agenda,
             cliente         = cliente,
+            clienteExternoNombre   = req.clienteExternoNombre?.trim()?.takeIf { it.isNotBlank() },
+            clienteExternoTelefono = req.clienteExternoTelefono?.trim()?.takeIf { it.isNotBlank() },
+            clienteExternoDni      = req.clienteExternoDni?.trim()?.takeIf { it.isNotBlank() },
+            clienteExternoEmail    = req.clienteExternoEmail?.trim()?.takeIf { it.isNotBlank() },
             iniciaEn        = req.iniciaEn,
             duracionMinutos = req.duracionMinutos,
             notas           = req.notas,
-            estado          = EstadoTurno.PENDIENTE
+            estado          = EstadoTurno.CONFIRMADO
         ))
         if (req.pagarAlReservar) {
+            val senaReserva = agenda.profesional.precio
+                .multiply(BigDecimal("0.5"))
+                .setScale(0, RoundingMode.HALF_UP)
+                .max(BigDecimal("500"))
             pagoRepository.save(Pago(
                 turno                   = turno,
-                monto                   = agenda.profesional.precio,
+                monto                   = senaReserva,
                 estado                  = EstadoPago.APROBADO,
+                origen                  = OrigenPago.ONLINE,
                 referenciaProveedorMock = "MOCK-${req.medioPago ?: "PAGO"}-${turno.id}",
                 pagadoEn                = LocalDateTime.now()
             ))
@@ -86,25 +101,29 @@ class TurnoService(
             pagoRepository.save(Pago(
                 turno  = turno,
                 monto  = agenda.profesional.precio,
-                estado = EstadoPago.PENDIENTE
+                estado = EstadoPago.APROBADO,
+                origen = OrigenPago.EXTERNO,
+                pagadoEn = LocalDateTime.now()
             ))
         }
         notificacionRepository.save(Notificacion(
             usuario     = agenda.profesional.usuario,
             canal       = "IN_APP",
             titulo      = "Nuevo turno reservado",
-            cuerpo      = "${cliente.usuario.nombreCompleto} reservó un turno para ${req.iniciaEn}.",
+            cuerpo      = "${nombreCliente(turno)} reservó un turno para ${req.iniciaEn}.",
             recursoTipo = "TURNO",
             recursoId   = turno.id
         ))
-        notificacionRepository.save(Notificacion(
-            usuario     = cliente.usuario,
-            canal       = "IN_APP",
-            titulo      = "Turno registrado",
-            cuerpo      = "Tu turno con ${agenda.profesional.usuario.nombreCompleto} quedó registrado.",
-            recursoTipo = "TURNO",
-            recursoId   = turno.id
-        ))
+        cliente?.let {
+            notificacionRepository.save(Notificacion(
+                usuario     = it.usuario,
+                canal       = "IN_APP",
+                titulo      = "Turno registrado",
+                cuerpo      = "Tu turno con ${agenda.profesional.usuario.nombreCompleto} quedó registrado.",
+                recursoTipo = "TURNO",
+                recursoId   = turno.id
+            ))
+        }
         return turno
     }
 
@@ -162,39 +181,24 @@ class TurnoService(
         return saved
     }
 
-    @Transactional
-    fun confirmar(id: UUID): Turno {
-        val turno          = findById(id)
-        val estadoAnterior = turno.estado
-        turno.confirmar()
-        val saved = turnoRepository.save(turno)
-        registrarCambio(saved, estadoAnterior)
-        return saved
-    }
-
-    @Transactional
-    fun completar(id: UUID): Turno {
-        val turno          = findById(id)
-        val estadoAnterior = turno.estado
-        turno.completar()
-        val saved = turnoRepository.save(turno)
-        registrarCambio(saved, estadoAnterior)
-        return saved
-    }
-
     private fun registrarCambio(turno: Turno, estadoAnterior: EstadoTurno) {
         historialTurnoRepository.save(HistorialTurno(
             turno          = turno,
             estadoAnterior = estadoAnterior,
             estadoNuevo    = turno.estado
         ))
-        notificacionRepository.save(Notificacion(
-            usuario     = turno.cliente.usuario,
-            canal       = "IN_APP",
-            titulo      = "Turno ${turno.estado.name.lowercase()}",
-            cuerpo      = "Tu turno con ${turno.agenda.profesional.usuario.nombreCompleto} quedó ${turno.estado.name.lowercase()}.",
-            recursoTipo = "TURNO",
-            recursoId   = turno.id
-        ))
+        turno.cliente?.let { cliente ->
+            notificacionRepository.save(Notificacion(
+                usuario     = cliente.usuario,
+                canal       = "IN_APP",
+                titulo      = "Turno ${turno.estado.name.lowercase()}",
+                cuerpo      = "Tu turno con ${turno.agenda.profesional.usuario.nombreCompleto} quedó ${turno.estado.name.lowercase()}.",
+                recursoTipo = "TURNO",
+                recursoId   = turno.id
+            ))
+        }
     }
+
+    private fun nombreCliente(turno: Turno): String =
+        turno.cliente?.usuario?.nombreCompleto ?: turno.clienteExternoNombre ?: "Cliente externo"
 }

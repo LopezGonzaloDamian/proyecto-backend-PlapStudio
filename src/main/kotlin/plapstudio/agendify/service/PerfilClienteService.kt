@@ -24,7 +24,7 @@ class PerfilClienteService(
         val perfil = perfilProfesionalRepository.findById(profesionalId)
             .orElseThrow { NotFoundException("Profesional no encontrado con id: $profesionalId") }
         return turnoRepository.findByAgendaProfesional(perfil)
-            .map { it.cliente }
+            .mapNotNull { it.cliente }
             .distinctBy { it.id }
     }
 }

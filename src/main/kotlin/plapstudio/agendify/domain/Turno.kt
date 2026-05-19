@@ -1,6 +1,5 @@
 package plapstudio.agendify.domain
 
-import plapstudio.agendify.errors.BusinessException
 import jakarta.persistence.*
 import java.time.LocalDateTime
 import java.util.UUID
@@ -17,42 +16,34 @@ class Turno(
     val agenda: Agenda,
 
     @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "email_cliente", nullable = false)
-    val cliente: PerfilCliente,
+    @JoinColumn(name = "email_cliente", nullable = true)
+    val cliente: PerfilCliente? = null,
+
+    var clienteExternoNombre: String? = null,
+    var clienteExternoTelefono: String? = null,
+    var clienteExternoDni: String? = null,
+    var clienteExternoEmail: String? = null,
 
     var iniciaEn: LocalDateTime,
     var duracionMinutos: Int,
 
     @Enumerated(EnumType.STRING)
-    var estado: EstadoTurno = EstadoTurno.PENDIENTE,
+    var estado: EstadoTurno = EstadoTurno.CONFIRMADO,
 
     var notas: String = "",
     val creadoEn: LocalDateTime = LocalDateTime.now(),
     var actualizadoEn: LocalDateTime = LocalDateTime.now()
 ) {
-    fun confirmar() {
-        if (estado == EstadoTurno.CANCELADO) throw BusinessException("No se puede confirmar un turno cancelado")
-        estado        = EstadoTurno.CONFIRMADO
-        actualizadoEn = LocalDateTime.now()
-    }
-
     fun cancelar() {
-        if (estado == EstadoTurno.COMPLETADO) throw BusinessException("No se puede cancelar un turno completado")
         estado        = EstadoTurno.CANCELADO
         actualizadoEn = LocalDateTime.now()
     }
 
-    fun completar() {
-        if (estado != EstadoTurno.CONFIRMADO) throw BusinessException("Solo se pueden completar turnos confirmados")
-        estado        = EstadoTurno.COMPLETADO
-        actualizadoEn = LocalDateTime.now()
-    }
-
-    fun estaActivo() = estado != EstadoTurno.CANCELADO && estado != EstadoTurno.COMPLETADO
+    fun estaActivo() = estado != EstadoTurno.CANCELADO
 }
 
 //------------------------------------------
 
 enum class EstadoTurno {
-    PENDIENTE, CONFIRMADO, CANCELADO, COMPLETADO
+    CONFIRMADO, CANCELADO
 }

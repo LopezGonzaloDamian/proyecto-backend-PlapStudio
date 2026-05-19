@@ -53,21 +53,9 @@ class TurnoController(
         return mapper.toTurnoDto(turno, turnoService.pagoDe(turno))
     }
 
-    @PatchMapping("/{id}/confirmar")
-    fun confirmar(@PathVariable id: UUID): TurnoDto {
-        val turno = turnoService.confirmar(id)
-        return mapper.toTurnoDto(turno, turnoService.pagoDe(turno))
-    }
-
     @PatchMapping("/{id}/cancelar")
     fun cancelar(@PathVariable id: UUID, @RequestBody(required = false) req: TurnoCancelRequest?): TurnoDto {
         val turno = turnoService.cancelar(id, req?.motivo)
-        return mapper.toTurnoDto(turno, turnoService.pagoDe(turno))
-    }
-
-    @PatchMapping("/{id}/completar")
-    fun completar(@PathVariable id: UUID): TurnoDto {
-        val turno = turnoService.completar(id)
         return mapper.toTurnoDto(turno, turnoService.pagoDe(turno))
     }
 }

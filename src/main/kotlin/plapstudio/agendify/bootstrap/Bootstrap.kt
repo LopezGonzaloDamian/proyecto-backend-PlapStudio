@@ -226,24 +226,24 @@ class Bootstrap {
         val turnosSeed = listOf(
             // Cliente santi
             TurnoSeed(martina.agenda, santi.perfil,  LocalDateTime.of(2026, 4, 22, 10, 30), 45, EstadoTurno.CONFIRMADO, "Llevar estudios recientes."),
-            TurnoSeed(diego.agenda,   santi.perfil,  LocalDateTime.of(2026, 4, 18, 14, 30), 45, EstadoTurno.PENDIENTE),
-            TurnoSeed(camila.agenda,  santi.perfil,  LocalDateTime.of(2026, 4, 10,  9, 30), 45, EstadoTurno.COMPLETADO, pagar = true),
-            TurnoSeed(leo.agenda,     santi.perfil,  LocalDateTime.of(2026, 4, 18, 19,  0), 45, EstadoTurno.PENDIENTE),
+            TurnoSeed(diego.agenda,   santi.perfil,  LocalDateTime.of(2026, 4, 18, 14, 30), 45, EstadoTurno.CONFIRMADO),
+            TurnoSeed(camila.agenda,  santi.perfil,  LocalDateTime.of(2026, 4, 10,  9, 30), 45, EstadoTurno.CONFIRMADO, pagar = true),
+            TurnoSeed(leo.agenda,     santi.perfil,  LocalDateTime.of(2026, 4, 18, 19,  0), 45, EstadoTurno.CONFIRMADO),
 
             // Profesional dashboard (Martina)
             TurnoSeed(martina.agenda, ana.perfil,    LocalDateTime.of(2026, 4, 18,  9,  0), 45, EstadoTurno.CONFIRMADO, "Evaluacion inicial", pagar = true),
-            TurnoSeed(martina.agenda, carlos.perfil, LocalDateTime.of(2026, 4, 18, 10, 30), 45, EstadoTurno.PENDIENTE,  "Sesion de seguimiento"),
+            TurnoSeed(martina.agenda, carlos.perfil, LocalDateTime.of(2026, 4, 18, 10, 30), 45, EstadoTurno.CONFIRMADO,  "Sesion de seguimiento"),
             TurnoSeed(martina.agenda, marta.perfil,  LocalDateTime.of(2026, 4, 19, 15,  0), 45, EstadoTurno.CONFIRMADO, "Control mensual", pagar = true),
 
             // Asistente dashboard (Lucia Gomez)
             TurnoSeed(martina.agenda, ana.perfil,    LocalDateTime.of(2026, 5, 2,  9,  0), 45, EstadoTurno.CONFIRMADO, "Recordar plan anterior."),
-            TurnoSeed(leo.agenda,     carlos.perfil, LocalDateTime.of(2026, 5, 2, 11, 30), 45, EstadoTurno.PENDIENTE,  "Corte y barba."),
+            TurnoSeed(leo.agenda,     carlos.perfil, LocalDateTime.of(2026, 5, 2, 11, 30), 45, EstadoTurno.CONFIRMADO,  "Corte y barba."),
             TurnoSeed(sofi.agenda,    luciaP.perfil, LocalDateTime.of(2026, 5, 4, 17, 30), 45, EstadoTurno.CONFIRMADO, "Kapping con esmalte nude."),
             TurnoSeed(sofi.agenda,    marta.perfil,  LocalDateTime.of(2026, 5, 3, 15,  0), 45, EstadoTurno.CANCELADO,  "La clienta aviso que no llegaba a tiempo."),
 
             // Extras
-            TurnoSeed(valeria.agenda, nahuel.perfil, LocalDateTime.of(2026, 4, 20, 13, 30), 45, EstadoTurno.PENDIENTE),
-            TurnoSeed(paula.agenda,   ana.perfil,    LocalDateTime.of(2026, 4, 21, 11,  0), 45, EstadoTurno.PENDIENTE),
+            TurnoSeed(valeria.agenda, nahuel.perfil, LocalDateTime.of(2026, 4, 20, 13, 30), 45, EstadoTurno.CONFIRMADO),
+            TurnoSeed(paula.agenda,   ana.perfil,    LocalDateTime.of(2026, 4, 21, 11,  0), 45, EstadoTurno.CONFIRMADO),
             TurnoSeed(majo.agenda,    luciaP.perfil, LocalDateTime.of(2026, 4, 24, 16,  0), 45, EstadoTurno.CONFIRMADO, "Maquillaje social", pagar = true)
         )
 
@@ -262,6 +262,7 @@ class Bootstrap {
                     turno                   = turno,
                     monto                   = precio,
                     estado                  = EstadoPago.APROBADO,
+                    origen                  = OrigenPago.ONLINE,
                     referenciaProveedorMock = "MOCK-${turno.id}",
                     pagadoEn                = t.iniciaEn
                 ))
@@ -269,7 +270,8 @@ class Bootstrap {
                 pagoRepository.save(Pago(
                     turno  = turno,
                     monto  = precio,
-                    estado = EstadoPago.PENDIENTE
+                    estado = EstadoPago.PENDIENTE,
+                    origen = OrigenPago.EXTERNO
                 ))
             }
         }

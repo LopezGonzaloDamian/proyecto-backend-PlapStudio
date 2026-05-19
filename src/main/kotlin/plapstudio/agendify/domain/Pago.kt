@@ -22,6 +22,9 @@ class Pago(
     @Enumerated(EnumType.STRING)
     var estado: EstadoPago = EstadoPago.PENDIENTE,
 
+    @Enumerated(EnumType.STRING)
+    var origen: OrigenPago? = OrigenPago.EXTERNO,
+
     var referenciaProveedorMock: String? = null,
     var pagadoEn: LocalDateTime? = null
 )
@@ -30,4 +33,8 @@ class Pago(
 
 enum class EstadoPago {
     PENDIENTE, APROBADO, RECHAZADO, REEMBOLSADO
+}
+
+enum class OrigenPago {
+    ONLINE, EXTERNO
 }
