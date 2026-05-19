@@ -58,7 +58,7 @@ class Bootstrap {
 
         // ─── ADMIN ──────────────────────────────────────────────────────────
         usuarioRepository.save(Usuario(
-            email          = "admin@agendify.com",
+            email          = "admin@gmail.com",
             contrasenaHash = "1234",
             nombreCompleto = "Admin Agendify",
             telefono       = "1100000000",
@@ -68,7 +68,7 @@ class Bootstrap {
         // ─── PROFESIONALES ──────────────────────────────────────────────────
         val profesionalesSeed = listOf(
             ProfTemplate(
-                email = "martina.rios@agendify.com", nombre = "Martina Rios", telefono = "1139494813",
+                email = "martina.rios@gmail.com", nombre = "Martina Rios", telefono = "1139494813",
                 especialidad = "Nutrición",
                 biografia    = "Atencion nutricional integral para planes de alimentacion, control metabolico y seguimiento de habitos.",
                 urlAvatar    = "/img/profesionales/martina-rios.jpg", destacado = true,
@@ -79,7 +79,7 @@ class Bootstrap {
                 agendaDescripcion = "Atencion nutricional con turnos cada 45 minutos."
             ),
             ProfTemplate(
-                email = "diego.benitez@agendify.com", nombre = "Diego Benitez", telefono = "1139494814",
+                email = "diego.benitez@gmail.com", nombre = "Diego Benitez", telefono = "1139494814",
                 especialidad = "Kinesiologia",
                 biografia    = "Rehabilitacion fisica, tratamiento de lesiones deportivas y sesiones de movilidad funcional.",
                 urlAvatar    = "/img/profesionales/diego-benitez.jpg", destacado = true,
@@ -90,7 +90,7 @@ class Bootstrap {
                 agendaDescripcion = "Sesiones de rehabilitacion y masoterapia."
             ),
             ProfTemplate(
-                email = "camila.duarte@agendify.com", nombre = "Camila Duarte", telefono = "1123344556",
+                email = "camila.duarte@gmail.com", nombre = "Camila Duarte", telefono = "1123344556",
                 especialidad = "Odontologia",
                 biografia    = "Consultorio odontologico con agenda para controles, limpieza, restauraciones y urgencias simples.",
                 urlAvatar    = "/img/profesionales/camila-duarte.jpg", destacado = false,
@@ -101,7 +101,7 @@ class Bootstrap {
                 agendaDescripcion = "Controles, limpieza y restauraciones dentales."
             ),
             ProfTemplate(
-                email = "valeria.sosa@agendify.com", nombre = "Valeria Sosa", telefono = "1198765432",
+                email = "valeria.sosa@gmail.com", nombre = "Valeria Sosa", telefono = "1198765432",
                 especialidad = "Psicologia",
                 biografia    = "Acompanamiento psicologico para adultos, ansiedad, organizacion personal y bienestar emocional.",
                 urlAvatar    = "/img/profesionales/valeria-sosa.jpg", destacado = false,
@@ -112,7 +112,7 @@ class Bootstrap {
                 agendaDescripcion = "Sesiones individuales y seguimiento online."
             ),
             ProfTemplate(
-                email = "leo.barrios@agendify.com", nombre = "Leonel Barrios", telefono = "0981123456",
+                email = "leo.barrios@gmail.com", nombre = "Leonel Barrios", telefono = "0981123456",
                 especialidad = "Barberia",
                 biografia    = "Cortes clasicos y modernos, perfilado de barba y atencion con turnos para evitar esperas.",
                 urlAvatar    = "/img/profesionales/leo-barrios.jpg", destacado = false,
@@ -123,7 +123,7 @@ class Bootstrap {
                 agendaDescripcion = "Cortes y barba con turnos cada 45 minutos."
             ),
             ProfTemplate(
-                email = "paula.gimenez@agendify.com", nombre = "Paula Gimenez", telefono = "0981456789",
+                email = "paula.gimenez@gmail.com", nombre = "Paula Gimenez", telefono = "0981456789",
                 especialidad = "Peluqueria",
                 biografia    = "Turnos para color, brushing, cortes y tratamientos capilares con atencion personalizada.",
                 urlAvatar    = "/img/profesionales/paula-gimenez.jpg", destacado = false,
@@ -134,7 +134,7 @@ class Bootstrap {
                 agendaDescripcion = "Color, brushing y tratamientos capilares."
             ),
             ProfTemplate(
-                email = "sofi.acosta@agendify.com", nombre = "Sofia Acosta", telefono = "0981765432",
+                email = "sofi.acosta@gmail.com", nombre = "Sofia Acosta", telefono = "0981765432",
                 especialidad = "Manicurista",
                 biografia    = "Agenda de manicura y nail art con turnos programados para esmaltado, kapping y disenos.",
                 urlAvatar    = "/img/profesionales/sofi-acosta.jpg", destacado = false,
@@ -145,7 +145,7 @@ class Bootstrap {
                 agendaDescripcion = "Esmaltado semipermanente, kapping y nail art."
             ),
             ProfTemplate(
-                email = "majo.ferreira@agendify.com", nombre = "Micaela Ferreira", telefono = "0981987654",
+                email = "majo.ferreira@gmail.com", nombre = "Micaela Ferreira", telefono = "0981987654",
                 especialidad = "Maquillaje profesional",
                 biografia    = "Reservas para maquillaje social, novias y producciones con bloques de tiempo definidos.",
                 urlAvatar    = "/img/profesionales/majo-ferreira.jpg", destacado = false,
@@ -170,14 +170,14 @@ class Bootstrap {
 
         // ─── ASISTENTES ─────────────────────────────────────────────────────
         val luciaG = usuarioRepository.save(Usuario(
-            email          = "lucia.gomez@agendify.com",
+            email          = "lucia.gomez@gmail.com",
             contrasenaHash = "1234",
             nombreCompleto = "Lucia Gomez",
             telefono       = "1100002233",
             roles          = mutableSetOf(rolAsistente)
         ))
         val rodrigo = usuarioRepository.save(Usuario(
-            email          = "rodrigo.casco@agendify.com",
+            email          = "rodrigo.casco@gmail.com",
             contrasenaHash = "1234",
             nombreCompleto = "Rodrigo Casco",
             telefono       = "1100003344",
@@ -191,12 +191,12 @@ class Bootstrap {
 
         // ─── CLIENTES ───────────────────────────────────────────────────────
         val clientesSeed = listOf(
-            "ana.garcia@agendify.com"     to ("Ana Garcia"     to "+595 981 111 111"),
-            "carlos.lopez@agendify.com"   to ("Carlos Lopez"   to "+595 981 222 222"),
-            "marta.benitez@agendify.com"  to ("Marta Benitez"  to "+595 981 333 333"),
-            "lucia.peralta@agendify.com"  to ("Lucia Peralta"  to "+595 981 444 444"),
-            "santiago.zolla@agendify.com" to ("Santiago Zolla" to "+595 981 555 555"),
-            "nahuel.garcia@agendify.com"  to ("Nahuel Garcia"  to "+595 981 666 666")
+            "ana.garcia@gmail.com"     to ("Ana Garcia"     to "+595 981 111 111"),
+            "carlos.lopez@gmail.com"   to ("Carlos Lopez"   to "+595 981 222 222"),
+            "marta.benitez@gmail.com"  to ("Marta Benitez"  to "+595 981 333 333"),
+            "lucia.peralta@gmail.com"  to ("Lucia Peralta"  to "+595 981 444 444"),
+            "santiago.zolla@gmail.com" to ("Santiago Zolla" to "+595 981 555 555"),
+            "nahuel.garcia@gmail.com"  to ("Nahuel Garcia"  to "+595 981 666 666")
         )
         val clientes = clientesSeed.map { (email, datos) ->
             val (nombre, telefono) = datos
