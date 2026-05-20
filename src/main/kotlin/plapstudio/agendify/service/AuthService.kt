@@ -2,11 +2,17 @@ package plapstudio.agendify.service
 
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import plapstudio.agendify.auth.AuthTokenService
+import plapstudio.agendify.auth.GoogleTokenVerifier
 import plapstudio.agendify.domain.PerfilCliente
 import plapstudio.agendify.domain.PerfilProfesional
 import plapstudio.agendify.domain.Usuario
+import plapstudio.agendify.dto.AuthResponse
+import plapstudio.agendify.dto.GoogleLoginRequest
 import plapstudio.agendify.dto.LoginRequest
+import plapstudio.agendify.dto.Mapper
 import plapstudio.agendify.dto.RegistroRequest
+import plapstudio.agendify.dto.SeleccionRolRequest
 import plapstudio.agendify.errors.BusinessException
 import plapstudio.agendify.errors.ConflictException
 import plapstudio.agendify.errors.NotFoundException
@@ -18,60 +24,148 @@ import plapstudio.agendify.repository.UsuarioRepository
 
 @Service
 class AuthService(
-    private val usuarioRepository:           UsuarioRepository,
-    private val rolRepository:                RolRepository,
-    private val perfilProfesionalRepository:  PerfilProfesionalRepository,
-    private val perfilClienteRepository:      PerfilClienteRepository
+    private val usuarioRepository: UsuarioRepository,
+    private val rolRepository: RolRepository,
+    private val perfilProfesionalRepository: PerfilProfesionalRepository,
+    private val perfilClienteRepository: PerfilClienteRepository,
+    private val mapper: Mapper,
+    private val authTokenService: AuthTokenService,
+    private val googleTokenVerifier: GoogleTokenVerifier
 ) {
 
-    fun login(req: LoginRequest): Usuario {
+    fun login(req: LoginRequest): AuthResponse {
         val usuario = usuarioRepository.findByEmail(req.email.trim().lowercase())
-            ?: throw UnauthorizedException("Credenciales inválidas")
+            ?: throw UnauthorizedException("Credenciales invalidas")
         if (usuario.contrasenaHash != req.password) {
-            throw UnauthorizedException("Credenciales inválidas")
+            throw UnauthorizedException("Credenciales invalidas")
         }
         if (!usuario.activo) throw UnauthorizedException("Usuario deshabilitado")
-        return usuario
+        return buildAuthResponse(usuario)
     }
 
     @Transactional
-    fun registrar(req: RegistroRequest): Usuario {
+    fun registrar(req: RegistroRequest): AuthResponse {
         val email = req.email.trim().lowercase()
         if (usuarioRepository.existsByEmail(email)) {
             throw ConflictException("Ya existe un usuario con ese email")
         }
-        val rolNombre = req.rol.uppercase()
-        if (rolNombre !in setOf("CLIENTE", "PROFESIONAL", "ASISTENTE")) {
-            throw BusinessException("Rol inválido. Usar CLIENTE, PROFESIONAL o ASISTENTE")
-        }
-        val rol = rolRepository.findByNombre(rolNombre)
-            ?: throw NotFoundException("Rol no encontrado: $rolNombre")
 
-        val nuevo = Usuario(
-            email          = email,
-            contrasenaHash = req.password,
-            nombreCompleto = req.nombreCompleto.trim(),
-            telefono       = req.telefono.trim(),
-            roles          = mutableSetOf(rol)
+        val usuario = usuarioRepository.save(
+            Usuario(
+                email = email,
+                contrasenaHash = req.password,
+                nombreCompleto = req.nombreCompleto.trim(),
+                telefono = req.telefono.trim(),
+                roles = mutableSetOf(resolveAllowedRole(req.rol))
+            )
         )
-        val usuario = usuarioRepository.save(nuevo)
 
+        ensureProfilesForRole(usuario, req.rol.uppercase(), req.especialidad)
+        return buildAuthResponse(usuario)
+    }
+
+    @Transactional
+    fun loginConGoogle(req: GoogleLoginRequest): AuthResponse {
+        if (req.credential.isBlank()) throw UnauthorizedException("Falta la credencial de Google")
+
+        val identity = googleTokenVerifier.verify(req.credential)
+        val usuario = usuarioRepository.findByGoogleSub(identity.sub)
+            ?: usuarioRepository.findByEmail(identity.email)?.also { existente ->
+                if (existente.googleSub != null && existente.googleSub != identity.sub) {
+                    throw ConflictException("Ese email ya esta vinculado a otra cuenta de Google")
+                }
+                existente.googleSub = identity.sub
+            }
+            ?: createGoogleUser(identity.email, identity.nombreCompleto, identity.sub)
+
+        if (!usuario.activo) throw UnauthorizedException("Usuario deshabilitado")
+        if (usuario.googleSub == null) {
+            usuario.googleSub = identity.sub
+        }
+        if (usuario.nombreCompleto.isBlank()) {
+            usuario.nombreCompleto = identity.nombreCompleto
+        }
+        return buildAuthResponse(usuarioRepository.save(usuario))
+    }
+
+    @Transactional(readOnly = true)
+    fun me(usuarioId: Long): AuthResponse {
+        val usuario = usuarioRepository.findById(usuarioId)
+            .orElseThrow { UnauthorizedException("La sesion ya no es valida") }
+        if (!usuario.activo) throw UnauthorizedException("Usuario deshabilitado")
+        return buildAuthResponse(usuario)
+    }
+
+    @Transactional
+    fun seleccionarRol(usuarioId: Long, req: SeleccionRolRequest): AuthResponse {
+        val usuario = usuarioRepository.findById(usuarioId)
+            .orElseThrow { UnauthorizedException("La sesion ya no es valida") }
+
+        val rolNombre = req.rol.uppercase()
+        val rol = resolveAllowedRole(rolNombre)
+        val yaDefinido = usuario.roles.map { it.nombre }.firstOrNull { it != "SIN_DEFINIR" }
+        if (yaDefinido != null && yaDefinido != rolNombre) {
+            throw ConflictException("El usuario ya tiene un rol definido")
+        }
+
+        usuario.roles.removeIf { it.nombre == "SIN_DEFINIR" }
+        usuario.roles.removeIf { it.nombre in setOf("CLIENTE", "PROFESIONAL", "ASISTENTE") && it.nombre != rolNombre }
+        usuario.roles.add(rol)
+
+        ensureProfilesForRole(usuario, rolNombre, req.especialidad)
+        return buildAuthResponse(usuarioRepository.save(usuario))
+    }
+
+    private fun buildAuthResponse(usuario: Usuario): AuthResponse =
+        AuthResponse(
+            token = authTokenService.issueToken(usuario.id!!),
+            usuario = mapper.toUsuarioDto(usuario)
+        )
+
+    private fun resolveAllowedRole(rolNombre: String) =
+        if (rolNombre !in setOf("CLIENTE", "PROFESIONAL", "ASISTENTE")) {
+            throw BusinessException("Rol invalido. Usar CLIENTE, PROFESIONAL o ASISTENTE")
+        } else {
+            rolRepository.findByNombre(rolNombre)
+                ?: throw NotFoundException("Rol no encontrado: $rolNombre")
+        }
+
+    private fun createGoogleUser(email: String, nombreCompleto: String, googleSub: String): Usuario {
+        val rolPendiente = rolRepository.findByNombre("SIN_DEFINIR")
+            ?: throw NotFoundException("Rol no encontrado: SIN_DEFINIR")
+        return usuarioRepository.save(
+            Usuario(
+                email = email,
+                contrasenaHash = "",
+                nombreCompleto = nombreCompleto.trim(),
+                telefono = "",
+                googleSub = googleSub,
+                roles = mutableSetOf(rolPendiente)
+            )
+        )
+    }
+
+    private fun ensureProfilesForRole(usuario: Usuario, rolNombre: String, especialidad: String?) {
         when (rolNombre) {
-            "CLIENTE" -> {
+            "CLIENTE" -> if (usuario.perfilCliente == null) {
                 val perfil = PerfilCliente(usuario = usuario)
                 perfilClienteRepository.save(perfil)
                 usuario.perfilCliente = perfil
             }
+
             "PROFESIONAL" -> {
-                val perfil = PerfilProfesional(
-                    usuario      = usuario,
-                    especialidad = req.especialidad?.trim().orEmpty()
-                )
-                perfilProfesionalRepository.save(perfil)
-                usuario.perfilProfesional = perfil
+                val perfil = usuario.perfilProfesional
+                if (perfil == null) {
+                    val nuevoPerfil = PerfilProfesional(
+                        usuario = usuario,
+                        especialidad = especialidad?.trim().orEmpty()
+                    )
+                    perfilProfesionalRepository.save(nuevoPerfil)
+                    usuario.perfilProfesional = nuevoPerfil
+                } else if (perfil.especialidad.isBlank() && !especialidad.isNullOrBlank()) {
+                    perfil.especialidad = especialidad.trim()
+                }
             }
-            // ASISTENTE: solo el usuario, sin perfil específico
         }
-        return usuario
     }
 }

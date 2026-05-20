@@ -16,6 +16,10 @@ data class LoginRequest(
     val password: String
 )
 
+data class GoogleLoginRequest(
+    val credential: String = ""
+)
+
 data class RegistroRequest(
     val email: String,
     val password: String,
@@ -23,6 +27,16 @@ data class RegistroRequest(
     val telefono: String,
     val rol: String, // "CLIENTE" | "PROFESIONAL" | "ASISTENTE"
     val especialidad: String? = null
+)
+
+data class SeleccionRolRequest(
+    val rol: String = "",
+    val especialidad: String? = null
+)
+
+data class AuthResponse(
+    val token: String,
+    val usuario: UsuarioDto
 )
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -37,7 +51,8 @@ data class UsuarioDto(
     val activo: Boolean,
     val roles: List<String>,
     val perfilProfesionalId: Long?,
-    val perfilClienteId: Long?
+    val perfilClienteId: Long?,
+    val requiereSeleccionRol: Boolean
 )
 
 // ──────────────────────────────────────────────────────────────────────────────

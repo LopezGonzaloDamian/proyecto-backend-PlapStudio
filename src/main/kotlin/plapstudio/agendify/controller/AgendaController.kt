@@ -2,6 +2,7 @@ package plapstudio.agendify.controller
 
 import org.springframework.format.annotation.DateTimeFormat
 import org.springframework.web.bind.annotation.*
+import plapstudio.agendify.auth.AuthGuard
 import plapstudio.agendify.dto.*
 import plapstudio.agendify.service.AgendaService
 import java.time.LocalDate
@@ -12,7 +13,8 @@ import java.util.UUID
 @CrossOrigin("*")
 class AgendaController(
     private val service: AgendaService,
-    private val mapper:  Mapper
+    private val mapper:  Mapper,
+    private val authGuard: AuthGuard
 ) {
 
     @GetMapping
@@ -29,15 +31,22 @@ class AgendaController(
         service.findByProfesional(profesionalId).map { mapper.toAgendaDto(it) }
 
     @PostMapping
-    fun create(@RequestBody req: AgendaCreateRequest): AgendaDto =
-        mapper.toAgendaDto(service.create(req))
+    fun create(@RequestBody req: AgendaCreateRequest): AgendaDto {
+        authGuard.requireProfesional(req.profesionalId)
+        return mapper.toAgendaDto(service.create(req))
+    }
 
     @PutMapping("/{id}")
-    fun update(@PathVariable id: UUID, @RequestBody req: AgendaUpdateRequest): AgendaDto =
-        mapper.toAgendaDto(service.update(id, req))
+    fun update(@PathVariable id: UUID, @RequestBody req: AgendaUpdateRequest): AgendaDto {
+        authGuard.requireAgendaOwner(id)
+        return mapper.toAgendaDto(service.update(id, req))
+    }
 
     @DeleteMapping("/{id}")
-    fun darDeBaja(@PathVariable id: UUID) = service.darDeBaja(id)
+    fun darDeBaja(@PathVariable id: UUID) {
+        authGuard.requireAgendaOwner(id)
+        service.darDeBaja(id)
+    }
 
     // ── Configuración horaria ─────────────────────────────────────────────────
 
@@ -45,19 +54,28 @@ class AgendaController(
     fun reemplazarConfiguraciones(
         @PathVariable id: UUID,
         @RequestBody items: List<ConfiguracionHorariaDto>
-    ): AgendaDto = mapper.toAgendaDto(service.reemplazarConfiguraciones(id, items))
+    ): AgendaDto {
+        authGuard.requireAgendaOwner(id)
+        return mapper.toAgendaDto(service.reemplazarConfiguraciones(id, items))
+    }
 
     @PostMapping("/{id}/configuraciones")
     fun agregarConfiguracion(
         @PathVariable id: UUID,
         @RequestBody dto: ConfiguracionHorariaDto
-    ): AgendaDto = mapper.toAgendaDto(service.agregarConfiguracion(id, dto))
+    ): AgendaDto {
+        authGuard.requireAgendaOwner(id)
+        return mapper.toAgendaDto(service.agregarConfiguracion(id, dto))
+    }
 
     @DeleteMapping("/{id}/configuraciones/{configId}")
     fun eliminarConfiguracion(
         @PathVariable id: UUID,
         @PathVariable configId: UUID
-    ): AgendaDto = mapper.toAgendaDto(service.eliminarConfiguracion(id, configId))
+    ): AgendaDto {
+        authGuard.requireAgendaOwner(id)
+        return mapper.toAgendaDto(service.eliminarConfiguracion(id, configId))
+    }
 
     // ── Excepciones ───────────────────────────────────────────────────────────
 
@@ -65,13 +83,19 @@ class AgendaController(
     fun agregarExcepcion(
         @PathVariable id: UUID,
         @RequestBody dto: ExcepcionAgendaDto
-    ): AgendaDto = mapper.toAgendaDto(service.agregarExcepcion(id, dto))
+    ): AgendaDto {
+        authGuard.requireAgendaOwner(id)
+        return mapper.toAgendaDto(service.agregarExcepcion(id, dto))
+    }
 
     @DeleteMapping("/{id}/excepciones/{excepcionId}")
     fun eliminarExcepcion(
         @PathVariable id: UUID,
         @PathVariable excepcionId: UUID
-    ): AgendaDto = mapper.toAgendaDto(service.eliminarExcepcion(id, excepcionId))
+    ): AgendaDto {
+        authGuard.requireAgendaOwner(id)
+        return mapper.toAgendaDto(service.eliminarExcepcion(id, excepcionId))
+    }
 
     // ── Slots disponibles ─────────────────────────────────────────────────────
 
