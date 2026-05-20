@@ -63,6 +63,9 @@ class TurnoService(
         }
         val fecha = req.iniciaEn.toLocalDate()
         val hora  = req.iniciaEn.toLocalTime()
+        if (!req.iniciaEn.isAfter(LocalDateTime.now())) {
+            throw BusinessException("No se puede reservar un turno en un horario que ya paso")
+        }
         if (agenda.tieneExcepcionEn(fecha)) {
             throw BusinessException("La agenda no está disponible en esa fecha")
         }
