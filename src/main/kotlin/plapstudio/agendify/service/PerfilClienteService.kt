@@ -20,6 +20,11 @@ class PerfilClienteService(
 
     fun findAll(): List<PerfilCliente> = perfilClienteRepository.findAll()
 
+    fun findByEmail(email: String): PerfilCliente {
+        return perfilClienteRepository.findByUsuarioEmailIgnoreCase(email.trim())
+            ?: throw NotFoundException("Cliente no encontrado con email: $email")
+    }
+
     fun clientesDeProfesional(profesionalId: Long): List<PerfilCliente> {
         val perfil = perfilProfesionalRepository.findById(profesionalId)
             .orElseThrow { NotFoundException("Profesional no encontrado con id: $profesionalId") }

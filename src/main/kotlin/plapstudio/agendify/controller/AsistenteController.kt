@@ -1,6 +1,7 @@
 package plapstudio.agendify.controller
 
 import org.springframework.web.bind.annotation.*
+import plapstudio.agendify.auth.AuthGuard
 import plapstudio.agendify.dto.AsistenteAsignacionDto
 import plapstudio.agendify.dto.AsistenteAsignarRequest
 import plapstudio.agendify.dto.Mapper
@@ -19,23 +20,31 @@ import java.util.UUID
 class AsistenteController(
     private val service:      AsistenteService,
     private val turnoService: TurnoService,
-    private val mapper:       Mapper
+    private val mapper:       Mapper,
+    private val authGuard: AuthGuard
 ) {
 
     @GetMapping("/{usuarioId}/profesionales")
-    fun profesionales(@PathVariable usuarioId: Long): List<AsistenteAsignacionDto> =
-        service.profesionalesDe(usuarioId).map { mapper.toAsistenteAsignacionDto(it) }
+    fun profesionales(@PathVariable usuarioId: Long): List<AsistenteAsignacionDto> {
+        authGuard.requireUser(usuarioId)
+        return service.profesionalesDe(usuarioId).map { mapper.toAsistenteAsignacionDto(it) }
+    }
 
     @GetMapping("/profesional/{profesionalId}")
-    fun asistentesDe(@PathVariable profesionalId: Long): List<AsistenteAsignacionDto> =
-        service.asistentesDe(profesionalId).map { mapper.toAsistenteAsignacionDto(it) }
+    fun asistentesDe(@PathVariable profesionalId: Long): List<AsistenteAsignacionDto> {
+        authGuard.requireProfesional(profesionalId)
+        return service.asistentesDe(profesionalId).map { mapper.toAsistenteAsignacionDto(it) }
+    }
 
     @GetMapping("/{usuarioId}/turnos")
-    fun turnos(@PathVariable usuarioId: Long): List<TurnoDto> =
-        service.turnosDeAsistente(usuarioId).map { mapper.toTurnoDto(it, turnoService.pagoDe(it)) }
+    fun turnos(@PathVariable usuarioId: Long): List<TurnoDto> {
+        authGuard.requireUser(usuarioId)
+        return service.turnosDeAsistente(usuarioId).map { mapper.toTurnoDto(it, turnoService.pagoDe(it)) }
+    }
 
     @PostMapping("/{usuarioId}/turnos")
     fun reservarTurno(@PathVariable usuarioId: Long, @RequestBody req: TurnoCreateRequest): TurnoDto {
+        authGuard.requireUser(usuarioId)
         val turno = service.reservarTurno(usuarioId, req)
         return mapper.toTurnoDto(turno, turnoService.pagoDe(turno))
     }
@@ -46,6 +55,7 @@ class AsistenteController(
         @PathVariable turnoId: UUID,
         @RequestBody req: TurnoUpdateRequest
     ): TurnoDto {
+        authGuard.requireUser(usuarioId)
         val turno = service.modificarTurno(usuarioId, turnoId, req)
         return mapper.toTurnoDto(turno, turnoService.pagoDe(turno))
     }
@@ -56,6 +66,7 @@ class AsistenteController(
         @PathVariable turnoId: UUID,
         @RequestBody req: TurnoNotasRequest
     ): TurnoDto {
+        authGuard.requireUser(usuarioId)
         val turno = service.actualizarNotasTurno(usuarioId, turnoId, req.notas)
         return mapper.toTurnoDto(turno, turnoService.pagoDe(turno))
     }
@@ -66,14 +77,20 @@ class AsistenteController(
         @PathVariable turnoId: UUID,
         @RequestBody(required = false) req: TurnoCancelRequest?
     ): TurnoDto {
+        authGuard.requireUser(usuarioId)
         val turno = service.cancelarTurno(usuarioId, turnoId, req?.motivo)
         return mapper.toTurnoDto(turno, turnoService.pagoDe(turno))
     }
 
     @PostMapping
-    fun asignar(@RequestBody req: AsistenteAsignarRequest): AsistenteAsignacionDto =
-        mapper.toAsistenteAsignacionDto(service.asignar(req.profesionalId, req.asistenteId))
+    fun asignar(@RequestBody req: AsistenteAsignarRequest): AsistenteAsignacionDto {
+        authGuard.requireProfesional(req.profesionalId)
+        return mapper.toAsistenteAsignacionDto(service.asignar(req.profesionalId, req.asistenteEmail))
+    }
 
     @DeleteMapping("/{id}")
-    fun desasignar(@PathVariable id: UUID) = service.desasignar(id)
+    fun desasignar(@PathVariable id: UUID) {
+        authGuard.requireAssignmentManager(id)
+        service.desasignar(id)
+    }
 }
