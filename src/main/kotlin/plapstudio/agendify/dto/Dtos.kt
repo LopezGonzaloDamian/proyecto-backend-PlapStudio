@@ -289,5 +289,5 @@ data class AsistenteAsignacionDto(
 
 data class AsistenteAsignarRequest(
     val profesionalId: Long,
-    val asistenteId: Long
+    val asistenteEmail: String
 )

@@ -85,7 +85,7 @@ class AsistenteController(
     @PostMapping
     fun asignar(@RequestBody req: AsistenteAsignarRequest): AsistenteAsignacionDto {
         authGuard.requireProfesional(req.profesionalId)
-        return mapper.toAsistenteAsignacionDto(service.asignar(req.profesionalId, req.asistenteId))
+        return mapper.toAsistenteAsignacionDto(service.asignar(req.profesionalId, req.asistenteEmail))
     }
 
     @DeleteMapping("/{id}")

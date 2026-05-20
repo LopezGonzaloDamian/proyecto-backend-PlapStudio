@@ -77,13 +77,13 @@ class AsistenteService(
     }
 
     @Transactional
-    fun asignar(profesionalId: Long, asistenteId: Long): ProfesionalAsistente {
+    fun asignar(profesionalId: Long, asistenteEmail: String): ProfesionalAsistente {
         val profesional = perfilProfesionalRepository.findById(profesionalId)
             .orElseThrow { NotFoundException("Profesional no encontrado con id: $profesionalId") }
-        val asistente = usuarioRepository.findById(asistenteId)
-            .orElseThrow { NotFoundException("Usuario asistente no encontrado con id: $asistenteId") }
+        val asistente = usuarioRepository.findByEmail(asistenteEmail.trim())
+            ?: throw NotFoundException("No encontramos un asistente registrado con ese email")
         if (!asistente.esAsistente()) {
-            throw BusinessException("El usuario no tiene rol ASISTENTE")
+            throw BusinessException("El email ingresado no corresponde a un usuario con rol ASISTENTE")
         }
         if (profesionalAsistenteRepository.existsByProfesionalAndAsistente(profesional, asistente)) {
             throw ConflictException("Ya existe la asignación")
