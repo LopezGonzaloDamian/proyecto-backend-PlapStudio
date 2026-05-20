@@ -11,6 +11,7 @@ import plapstudio.agendify.repository.*
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.time.LocalDateTime
+import java.time.ZoneId
 import java.util.UUID
 
 @Service
@@ -23,6 +24,8 @@ class TurnoService(
     private val pagoRepository:              PagoRepository,
     private val notificacionRepository:      NotificacionRepository
 ) {
+    private val zonaHorariaApp = ZoneId.of("America/Asuncion")
+
 
     fun findById(id: UUID): Turno =
         turnoRepository.findById(id).orElseThrow { NotFoundException("Turno no encontrado con id: $id") }
@@ -63,7 +66,7 @@ class TurnoService(
         }
         val fecha = req.iniciaEn.toLocalDate()
         val hora  = req.iniciaEn.toLocalTime()
-        if (!req.iniciaEn.isAfter(LocalDateTime.now())) {
+        if (!req.iniciaEn.isAfter(LocalDateTime.now(zonaHorariaApp))) {
             throw BusinessException("No se puede reservar un turno en un horario que ya paso")
         }
         if (agenda.tieneExcepcionEn(fecha)) {
