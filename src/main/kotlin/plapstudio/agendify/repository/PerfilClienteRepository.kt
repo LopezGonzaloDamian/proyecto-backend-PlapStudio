@@ -5,4 +5,6 @@ import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.stereotype.Repository
 
 @Repository
-interface PerfilClienteRepository : JpaRepository<PerfilCliente, Long>
+interface PerfilClienteRepository : JpaRepository<PerfilCliente, Long> {
+    fun findByUsuarioEmailIgnoreCase(email: String): PerfilCliente?
+}

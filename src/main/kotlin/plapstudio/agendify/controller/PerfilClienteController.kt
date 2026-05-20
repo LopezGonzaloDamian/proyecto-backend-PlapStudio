@@ -21,6 +21,12 @@ class PerfilClienteController(
         return service.findAll().map { mapper.toClienteDto(it) }
     }
 
+    @GetMapping("/buscar")
+    fun buscarPorEmail(@RequestParam email: String): ClienteDto {
+        authGuard.requireAuthenticated()
+        return mapper.toClienteDto(service.findByEmail(email))
+    }
+
     @GetMapping("/{id}")
     fun detalle(@PathVariable id: Long): ClienteDto {
         authGuard.requireCliente(id)
