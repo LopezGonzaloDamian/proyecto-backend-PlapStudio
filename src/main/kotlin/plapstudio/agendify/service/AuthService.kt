@@ -2,6 +2,7 @@ package plapstudio.agendify.service
 
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.math.BigDecimal
 import plapstudio.agendify.auth.AuthTokenService
 import plapstudio.agendify.auth.GoogleTokenVerifier
 import plapstudio.agendify.domain.PerfilCliente
@@ -60,7 +61,16 @@ class AuthService(
             )
         )
 
-        ensureProfilesForRole(usuario, req.rol.uppercase(), req.especialidad)
+        ensureProfilesForRole(
+            usuario = usuario,
+            rolNombre = req.rol.uppercase(),
+            especialidad = req.especialidad,
+            biografia = req.biografia,
+            localidad = req.localidad,
+            direccion = req.direccion,
+            precio = req.precio,
+            servicios = req.servicios
+        )
         return buildAuthResponse(usuario)
     }
 
@@ -112,7 +122,16 @@ class AuthService(
         usuario.roles.removeIf { it.nombre in setOf("CLIENTE", "PROFESIONAL", "ASISTENTE") && it.nombre != rolNombre }
         usuario.roles.add(rol)
 
-        ensureProfilesForRole(usuario, rolNombre, req.especialidad)
+        ensureProfilesForRole(
+            usuario = usuario,
+            rolNombre = rolNombre,
+            especialidad = req.especialidad,
+            biografia = req.biografia,
+            localidad = req.localidad,
+            direccion = req.direccion,
+            precio = req.precio,
+            servicios = req.servicios
+        )
         return buildAuthResponse(usuarioRepository.save(usuario))
     }
 
@@ -145,7 +164,16 @@ class AuthService(
         )
     }
 
-    private fun ensureProfilesForRole(usuario: Usuario, rolNombre: String, especialidad: String?) {
+    private fun ensureProfilesForRole(
+        usuario: Usuario,
+        rolNombre: String,
+        especialidad: String?,
+        biografia: String? = null,
+        localidad: String? = null,
+        direccion: String? = null,
+        precio: BigDecimal? = null,
+        servicios: List<String>? = null
+    ) {
         when (rolNombre) {
             "CLIENTE" -> if (usuario.perfilCliente == null) {
                 val perfil = PerfilCliente(usuario = usuario)
@@ -154,16 +182,45 @@ class AuthService(
             }
 
             "PROFESIONAL" -> {
+                val especialidadNormalizada = especialidad?.trim().orEmpty()
+                val serviciosNormalizados = servicios.orEmpty()
+                    .map { it.trim() }
+                    .filter { it.isNotBlank() }
+                    .ifEmpty {
+                        if (especialidadNormalizada.isNotBlank()) listOf(especialidadNormalizada) else emptyList()
+                    }
                 val perfil = usuario.perfilProfesional
                 if (perfil == null) {
                     val nuevoPerfil = PerfilProfesional(
                         usuario = usuario,
-                        especialidad = especialidad?.trim().orEmpty()
+                        especialidad = especialidadNormalizada,
+                        biografia = biografia?.trim().orEmpty(),
+                        localidad = localidad?.trim().orEmpty(),
+                        direccion = direccion?.trim().orEmpty(),
+                        precio = precio ?: BigDecimal.ZERO,
+                        servicios = serviciosNormalizados.toMutableList()
                     )
                     perfilProfesionalRepository.save(nuevoPerfil)
                     usuario.perfilProfesional = nuevoPerfil
-                } else if (perfil.especialidad.isBlank() && !especialidad.isNullOrBlank()) {
-                    perfil.especialidad = especialidad.trim()
+                } else {
+                    if (perfil.especialidad.isBlank() && especialidadNormalizada.isNotBlank()) {
+                        perfil.especialidad = especialidadNormalizada
+                    }
+                    if (perfil.biografia.isBlank() && !biografia.isNullOrBlank()) {
+                        perfil.biografia = biografia.trim()
+                    }
+                    if (perfil.localidad.isBlank() && !localidad.isNullOrBlank()) {
+                        perfil.localidad = localidad.trim()
+                    }
+                    if (perfil.direccion.isBlank() && !direccion.isNullOrBlank()) {
+                        perfil.direccion = direccion.trim()
+                    }
+                    if (perfil.precio.compareTo(BigDecimal.ZERO) == 0 && precio != null) {
+                        perfil.precio = precio
+                    }
+                    if (perfil.servicios.isEmpty() && serviciosNormalizados.isNotEmpty()) {
+                        perfil.servicios.addAll(serviciosNormalizados)
+                    }
                 }
             }
         }

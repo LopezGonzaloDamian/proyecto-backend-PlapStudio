@@ -23,10 +23,10 @@ class PerfilProfesionalService(
     fun findDestacados(): List<PerfilProfesional> =
         perfilProfesionalRepository.findByDestacadoTrue()
 
-    fun buscar(query: String?, especialidad: String?, ubicacion: String?): List<PerfilProfesional> {
+    fun buscar(query: String?, especialidad: String?, localidad: String?): List<PerfilProfesional> {
         val q  = query?.trim()?.lowercase().orEmpty()
         val es = especialidad?.trim()?.lowercase().orEmpty()
-        val ub = ubicacion?.trim()?.lowercase().orEmpty()
+        val ub = localidad?.trim()?.lowercase().orEmpty()
         return perfilProfesionalRepository.findAll().filter { p ->
             val coincideQuery =
                 q.isEmpty() ||
@@ -37,7 +37,7 @@ class PerfilProfesionalService(
                 es.isEmpty() ||
                 p.especialidad.lowercase().contains(es) ||
                 p.servicios.any { it.lowercase().contains(es) }
-            val coincideUb = ub.isEmpty() || p.ubicacion.lowercase().contains(ub)
+            val coincideUb = ub.isEmpty() || p.localidad.lowercase().contains(ub)
             coincideQuery && coincideEs && coincideUb
         }
     }
@@ -52,7 +52,7 @@ class PerfilProfesionalService(
         perfil.especialidad        = req.especialidad
         perfil.biografia           = req.biografia
         perfil.urlAvatar           = req.urlAvatar
-        perfil.ubicacion           = req.ubicacion
+        perfil.localidad           = req.localidad
         perfil.direccion           = req.direccion
         perfil.precio              = req.precio
         perfil.cobertura           = req.cobertura

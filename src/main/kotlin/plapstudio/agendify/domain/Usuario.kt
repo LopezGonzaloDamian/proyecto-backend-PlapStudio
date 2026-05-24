@@ -17,6 +17,7 @@ class Usuario(
     var contrasenaHash: String,
     var nombreCompleto: String,
     var telefono: String,
+    var urlAvatar: String = "",
     @Column(unique = true)
     var googleSub: String? = null,
     var activo: Boolean = true,

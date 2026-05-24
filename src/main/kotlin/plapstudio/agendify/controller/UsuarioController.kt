@@ -4,6 +4,7 @@ import org.springframework.web.bind.annotation.*
 import plapstudio.agendify.auth.AuthGuard
 import plapstudio.agendify.dto.Mapper
 import plapstudio.agendify.dto.UsuarioDto
+import plapstudio.agendify.dto.UsuarioUpdateRequest
 import plapstudio.agendify.service.UsuarioService
 
 @RestController
@@ -31,6 +32,12 @@ class UsuarioController(
     fun getById(@PathVariable id: Long): UsuarioDto {
         authGuard.requireUser(id)
         return mapper.toUsuarioDto(usuarioService.findById(id))
+    }
+
+    @PutMapping("/{id}")
+    fun update(@PathVariable id: Long, @RequestBody req: UsuarioUpdateRequest): UsuarioDto {
+        authGuard.requireUser(id)
+        return mapper.toUsuarioDto(usuarioService.updatePerfil(id, req))
     }
 
     @DeleteMapping("/{id}")
