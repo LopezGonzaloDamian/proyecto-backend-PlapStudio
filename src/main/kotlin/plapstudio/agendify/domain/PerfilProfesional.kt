@@ -18,7 +18,7 @@ class PerfilProfesional(
     var urlAvatar: String = "",
     var destacado: Boolean = false,
 
-    var ubicacion: String = "",
+    var localidad: String = "",
     var direccion: String = "",
 
     @Column(precision = 12, scale = 2)

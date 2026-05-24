@@ -21,9 +21,9 @@ class PerfilProfesionalController(
     fun buscar(
         @RequestParam(required = false) query: String?,
         @RequestParam(required = false) especialidad: String?,
-        @RequestParam(required = false) ubicacion: String?
+        @RequestParam(required = false) localidad: String?
     ): List<ProfesionalSummaryDto> =
-        service.buscar(query, especialidad, ubicacion).map { mapper.toProfesionalSummaryDto(it) }
+        service.buscar(query, especialidad, localidad).map { mapper.toProfesionalSummaryDto(it) }
 
     @GetMapping("/destacados")
     fun destacados(): List<ProfesionalSummaryDto> =

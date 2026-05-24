@@ -1,9 +1,11 @@
 package plapstudio.agendify.service
 
 import plapstudio.agendify.domain.Usuario
+import plapstudio.agendify.dto.UsuarioUpdateRequest
 import plapstudio.agendify.errors.NotFoundException
 import plapstudio.agendify.repository.UsuarioRepository
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 
 @Service
 class UsuarioService(private val usuarioRepository: UsuarioRepository) {
@@ -23,6 +25,15 @@ class UsuarioService(private val usuarioRepository: UsuarioRepository) {
         existente.telefono       = datos.telefono
         existente.activo         = datos.activo
         existente.roles          = datos.roles
+        return usuarioRepository.save(existente)
+    }
+
+    @Transactional
+    fun updatePerfil(id: Long, req: UsuarioUpdateRequest): Usuario {
+        val existente = findById(id)
+        existente.nombreCompleto = req.nombreCompleto.trim()
+        existente.telefono = req.telefono.trim()
+        existente.urlAvatar = req.urlAvatar.trim()
         return usuarioRepository.save(existente)
     }
 

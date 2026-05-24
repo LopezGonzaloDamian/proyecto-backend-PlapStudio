@@ -26,12 +26,22 @@ data class RegistroRequest(
     val nombreCompleto: String,
     val telefono: String,
     val rol: String, // "CLIENTE" | "PROFESIONAL" | "ASISTENTE"
-    val especialidad: String? = null
+    val especialidad: String? = null,
+    val biografia: String? = null,
+    val localidad: String? = null,
+    val direccion: String? = null,
+    val precio: BigDecimal? = null,
+    val servicios: List<String>? = null
 )
 
 data class SeleccionRolRequest(
     val rol: String = "",
-    val especialidad: String? = null
+    val especialidad: String? = null,
+    val biografia: String? = null,
+    val localidad: String? = null,
+    val direccion: String? = null,
+    val precio: BigDecimal? = null,
+    val servicios: List<String>? = null
 )
 
 data class AuthResponse(
@@ -48,6 +58,7 @@ data class UsuarioDto(
     val email: String,
     val nombreCompleto: String,
     val telefono: String,
+    val urlAvatar: String,
     val activo: Boolean,
     val roles: List<String>,
     val perfilProfesionalId: Long?,
@@ -59,6 +70,12 @@ data class UsuarioDto(
 // Profesional
 // ──────────────────────────────────────────────────────────────────────────────
 
+data class UsuarioUpdateRequest(
+    val nombreCompleto: String,
+    val telefono: String,
+    val urlAvatar: String = ""
+)
+
 data class ProfesionalDto(
     val id: Long,
     val nombreCompleto: String,
@@ -68,7 +85,7 @@ data class ProfesionalDto(
     val biografia: String,
     val urlAvatar: String,
     val destacado: Boolean,
-    val ubicacion: String,
+    val localidad: String,
     val direccion: String,
     val precio: BigDecimal,
     val cobertura: String,
@@ -83,7 +100,7 @@ data class ProfesionalSummaryDto(
     val nombreCompleto: String,
     val especialidad: String,
     val urlAvatar: String,
-    val ubicacion: String,
+    val localidad: String,
     val precio: BigDecimal,
     val destacado: Boolean,
     val servicios: List<String>
@@ -93,7 +110,7 @@ data class ProfesionalUpdateRequest(
     val especialidad: String,
     val biografia: String,
     val urlAvatar: String,
-    val ubicacion: String,
+    val localidad: String,
     val direccion: String,
     val precio: BigDecimal,
     val cobertura: String,
