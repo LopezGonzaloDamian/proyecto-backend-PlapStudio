@@ -8,6 +8,7 @@ import org.springframework.transaction.annotation.Transactional
 import plapstudio.agendify.domain.*
 import plapstudio.agendify.repository.*
 import java.math.BigDecimal
+import java.math.RoundingMode
 import java.time.DayOfWeek
 import java.time.LocalDateTime
 import java.time.LocalTime
@@ -259,9 +260,15 @@ class Bootstrap {
             ))
             val precio = t.agenda.profesional.precio
             if (t.pagar) {
+                val porcentajeComision = BigDecimal("5.00")
+                val montoComision = precio.multiply(porcentajeComision)
+                    .divide(BigDecimal("100"), 2, RoundingMode.HALF_UP)
+                    .setScale(0, RoundingMode.HALF_UP)
                 pagoRepository.save(Pago(
                     turno                   = turno,
                     monto                   = precio,
+                    porcentajeComision      = porcentajeComision,
+                    montoComision           = montoComision,
                     estado                  = EstadoPago.APROBADO,
                     origen                  = OrigenPago.ONLINE,
                     referenciaProveedorMock = "MOCK-${turno.id}",
@@ -269,10 +276,12 @@ class Bootstrap {
                 ))
             } else if (precio > BigDecimal.ZERO && t.estado != EstadoTurno.CANCELADO) {
                 pagoRepository.save(Pago(
-                    turno  = turno,
-                    monto  = precio,
-                    estado = EstadoPago.PENDIENTE,
-                    origen = OrigenPago.EXTERNO
+                    turno              = turno,
+                    monto              = precio,
+                    porcentajeComision = BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP),
+                    montoComision      = BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP),
+                    estado             = EstadoPago.PENDIENTE,
+                    origen             = OrigenPago.EXTERNO
                 ))
             }
         }

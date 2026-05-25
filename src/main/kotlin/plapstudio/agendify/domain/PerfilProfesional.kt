@@ -24,6 +24,9 @@ class PerfilProfesional(
     @Column(precision = 12, scale = 2)
     var precio: BigDecimal = BigDecimal.ZERO,
 
+    @Column(precision = 5, scale = 2)
+    var comisionPendientePorcentaje: BigDecimal? = BigDecimal.ZERO,
+
     var cobertura: String = "",
     var matriculaNacional: String = "",
     var matriculaProvincial: String = "",
