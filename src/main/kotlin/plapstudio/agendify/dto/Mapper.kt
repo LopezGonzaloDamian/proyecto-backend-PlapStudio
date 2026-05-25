@@ -163,6 +163,7 @@ class Mapper {
         profesionalEspecialidad  = a.profesional.especialidad,
         asistenteId              = a.asistente.id!!,
         asistenteNombre          = a.asistente.nombreCompleto,
+        asistenteEmail           = a.asistente.email,
         asignadoEn               = a.asignadoEn
     )
 }
