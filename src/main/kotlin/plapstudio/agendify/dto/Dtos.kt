@@ -304,6 +304,7 @@ data class AsistenteAsignacionDto(
     val profesionalEspecialidad: String,
     val asistenteId: Long,
     val asistenteNombre: String,
+    val asistenteEmail: String,
     val asignadoEn: LocalDateTime
 )
 
