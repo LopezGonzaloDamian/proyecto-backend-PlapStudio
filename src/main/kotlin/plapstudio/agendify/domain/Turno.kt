@@ -31,6 +31,7 @@ class Turno(
     var estado: EstadoTurno = EstadoTurno.CONFIRMADO,
 
     var notas: String = "",
+    var comisionManualPendiente: Boolean = false,
     val creadoEn: LocalDateTime = LocalDateTime.now(),
     var actualizadoEn: LocalDateTime = LocalDateTime.now()
 ) {

@@ -25,6 +25,8 @@ class TurnoService(
     private val notificacionRepository:      NotificacionRepository
 ) {
     private val zonaHorariaApp = ZoneId.of("America/Asuncion")
+    private val comisionBasePorcentaje = BigDecimal("5.00")
+    private val cien = BigDecimal("100")
 
 
     fun findById(id: UUID): Turno =
@@ -78,6 +80,7 @@ class TurnoService(
         if (turnoRepository.existsByAgendaAndIniciaEn(agenda, req.iniciaEn)) {
             throw BusinessException("Ya existe un turno en esa fecha y horario")
         }
+        val generaComisionPendiente = !req.pagarAlReservar && agenda.profesional.precio > BigDecimal.ZERO
         val turno = turnoRepository.save(Turno(
             agenda          = agenda,
             cliente         = cliente,
@@ -88,28 +91,44 @@ class TurnoService(
             iniciaEn        = req.iniciaEn,
             duracionMinutos = req.duracionMinutos,
             notas           = req.notas,
-            estado          = EstadoTurno.CONFIRMADO
+            estado          = EstadoTurno.CONFIRMADO,
+            comisionManualPendiente = generaComisionPendiente
         ))
         if (req.pagarAlReservar) {
             val senaReserva = agenda.profesional.precio
                 .multiply(BigDecimal("0.5"))
                 .setScale(0, RoundingMode.HALF_UP)
                 .max(BigDecimal("500"))
+            val comisionPendiente = agenda.profesional.comisionPendientePorcentaje ?: BigDecimal.ZERO
+            val porcentajeComision = comisionBasePorcentaje
+                .add(comisionPendiente)
+                .setScale(2, RoundingMode.HALF_UP)
+            val montoComision = calcularComision(senaReserva, porcentajeComision)
             pagoRepository.save(Pago(
                 turno                   = turno,
                 monto                   = senaReserva,
+                porcentajeComision      = porcentajeComision,
+                montoComision           = montoComision,
                 estado                  = EstadoPago.APROBADO,
                 origen                  = OrigenPago.ONLINE,
                 referenciaProveedorMock = "MOCK-${req.medioPago ?: "PAGO"}-${turno.id}",
                 pagadoEn                = LocalDateTime.now()
             ))
-        } else if (agenda.profesional.precio > BigDecimal.ZERO) {
+            agenda.profesional.comisionPendientePorcentaje = BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP)
+            turnoRepository.findByAgendaProfesionalAndComisionManualPendienteTrue(agenda.profesional)
+                .forEach { it.comisionManualPendiente = false }
+        } else if (generaComisionPendiente) {
+            val comisionPendiente = agenda.profesional.comisionPendientePorcentaje ?: BigDecimal.ZERO
+            agenda.profesional.comisionPendientePorcentaje =
+                comisionPendiente.add(comisionBasePorcentaje)
             pagoRepository.save(Pago(
-                turno  = turno,
-                monto  = agenda.profesional.precio,
-                estado = EstadoPago.APROBADO,
-                origen = OrigenPago.EXTERNO,
-                pagadoEn = LocalDateTime.now()
+                turno              = turno,
+                monto              = agenda.profesional.precio,
+                porcentajeComision = BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP),
+                montoComision      = BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP),
+                estado             = EstadoPago.APROBADO,
+                origen             = OrigenPago.EXTERNO,
+                pagadoEn           = LocalDateTime.now()
             ))
         }
         notificacionRepository.save(Notificacion(
@@ -181,6 +200,10 @@ class TurnoService(
         val turno          = findById(id)
         val estadoAnterior = turno.estado
         turno.cancelar()
+        if (turno.comisionManualPendiente) {
+            restarComisionPendiente(turno.agenda.profesional)
+            turno.comisionManualPendiente = false
+        }
         if (!motivo.isNullOrBlank()) turno.notas = motivo
         val saved = turnoRepository.save(turno)
         registrarCambio(saved, estadoAnterior)
@@ -207,4 +230,16 @@ class TurnoService(
 
     private fun nombreCliente(turno: Turno): String =
         turno.cliente?.usuario?.nombreCompleto ?: turno.clienteExternoNombre ?: "Cliente externo"
+
+    private fun calcularComision(monto: BigDecimal, porcentaje: BigDecimal): BigDecimal =
+        monto.multiply(porcentaje)
+            .divide(cien, 2, RoundingMode.HALF_UP)
+            .setScale(0, RoundingMode.HALF_UP)
+
+    private fun restarComisionPendiente(profesional: PerfilProfesional) {
+        val actual = profesional.comisionPendientePorcentaje ?: BigDecimal.ZERO
+        profesional.comisionPendientePorcentaje = actual.subtract(comisionBasePorcentaje)
+            .max(BigDecimal.ZERO)
+            .setScale(2, RoundingMode.HALF_UP)
+    }
 }

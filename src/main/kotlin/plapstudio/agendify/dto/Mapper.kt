@@ -2,6 +2,7 @@ package plapstudio.agendify.dto
 
 import org.springframework.stereotype.Component
 import plapstudio.agendify.domain.*
+import java.math.BigDecimal
 
 @Component
 class Mapper {
@@ -31,6 +32,7 @@ class Mapper {
         localidad           = perfil.localidad,
         direccion           = perfil.direccion,
         precio              = perfil.precio,
+        comisionPendientePorcentaje = perfil.comisionPendientePorcentaje ?: BigDecimal.ZERO,
         cobertura           = perfil.cobertura,
         matriculaNacional   = perfil.matriculaNacional,
         matriculaProvincial = perfil.matriculaProvincial,
@@ -113,6 +115,8 @@ class Mapper {
         turnoId                 = pago.turno.id!!,
         monto                   = pago.monto,
         moneda                  = pago.moneda,
+        porcentajeComision      = pago.porcentajeComision ?: BigDecimal.ZERO,
+        montoComision           = pago.montoComision ?: BigDecimal.ZERO,
         estado                  = pago.estado.name,
         origen                  = pago.origen?.name ?: OrigenPago.EXTERNO.name,
         referenciaProveedorMock = pago.referenciaProveedorMock,

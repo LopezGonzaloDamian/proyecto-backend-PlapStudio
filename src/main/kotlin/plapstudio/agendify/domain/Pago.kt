@@ -19,6 +19,12 @@ class Pago(
     var monto: BigDecimal,
     var moneda: String = "ARS",
 
+    @Column(precision = 5, scale = 2)
+    var porcentajeComision: BigDecimal? = BigDecimal.ZERO,
+
+    @Column(precision = 12, scale = 2)
+    var montoComision: BigDecimal? = BigDecimal.ZERO,
+
     @Enumerated(EnumType.STRING)
     var estado: EstadoPago = EstadoPago.PENDIENTE,
 
