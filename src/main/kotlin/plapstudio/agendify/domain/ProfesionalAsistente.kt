@@ -4,6 +4,12 @@ import jakarta.persistence.*
 import java.time.LocalDateTime
 import java.util.UUID
 
+enum class EstadoAsignacionAsistente {
+    PENDIENTE,
+    ACEPTADA,
+    RECHAZADA
+}
+
 @Entity
 @Table(
     name = "profesional_asistente",
@@ -21,6 +27,9 @@ class ProfesionalAsistente(
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "email_asistente", nullable = false)
     val asistente: Usuario,
+
+    @Enumerated(EnumType.STRING)
+    var estado: EstadoAsignacionAsistente = EstadoAsignacionAsistente.PENDIENTE,
 
     val asignadoEn: LocalDateTime = LocalDateTime.now()
 )

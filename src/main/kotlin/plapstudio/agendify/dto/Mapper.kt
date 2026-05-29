@@ -161,9 +161,11 @@ class Mapper {
         profesionalId            = a.profesional.id!!,
         profesionalNombre        = a.profesional.usuario.nombreCompleto,
         profesionalEspecialidad  = a.profesional.especialidad,
+        profesionalAvatarUrl     = a.profesional.urlAvatar,
         asistenteId              = a.asistente.id!!,
         asistenteNombre          = a.asistente.nombreCompleto,
         asistenteEmail           = a.asistente.email,
+        estado                   = a.estado.name,
         asignadoEn               = a.asignadoEn
     )
 }

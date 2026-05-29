@@ -2,6 +2,7 @@ package plapstudio.agendify.auth
 
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
+import plapstudio.agendify.domain.EstadoAsignacionAsistente
 import plapstudio.agendify.domain.Turno
 import plapstudio.agendify.domain.Usuario
 import plapstudio.agendify.errors.ForbiddenException
@@ -113,13 +114,18 @@ class AuthGuard(
         val assignment = asignacionRepository.findByIdOrNull(assignmentId)
             ?: throw NotFoundException("Asignacion no encontrada")
         if (usuario.perfilProfesional?.id == assignment.profesional.id) return usuario
+        if (usuario.id == assignment.asistente.id) return usuario
         throw ForbiddenException("No puedes administrar esta asignacion")
     }
 
     private fun isAssignedAssistant(usuario: Usuario, profesionalId: Long): Boolean {
         if (!usuario.esAsistente()) return false
         val profesional = profesionalRepository.findByIdOrNull(profesionalId) ?: return false
-        return asignacionRepository.existsByProfesionalAndAsistente(profesional, usuario)
+        return asignacionRepository.existsByProfesionalAndAsistenteAndEstado(
+            profesional,
+            usuario,
+            EstadoAsignacionAsistente.ACEPTADA
+        )
     }
 
     private fun turno(turnoId: UUID): Turno =

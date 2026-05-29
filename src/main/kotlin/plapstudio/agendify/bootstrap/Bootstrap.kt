@@ -186,10 +186,10 @@ class Bootstrap {
             roles          = mutableSetOf(rolAsistente)
         ))
 
-        profesionalAsistenteRepository.save(ProfesionalAsistente(profesional = martina.perfil, asistente = luciaG))
-        profesionalAsistenteRepository.save(ProfesionalAsistente(profesional = leo.perfil,     asistente = luciaG))
-        profesionalAsistenteRepository.save(ProfesionalAsistente(profesional = sofi.perfil,    asistente = luciaG))
-        profesionalAsistenteRepository.save(ProfesionalAsistente(profesional = diego.perfil,   asistente = rodrigo))
+        profesionalAsistenteRepository.save(ProfesionalAsistente(profesional = martina.perfil, asistente = luciaG, estado = EstadoAsignacionAsistente.ACEPTADA))
+        profesionalAsistenteRepository.save(ProfesionalAsistente(profesional = leo.perfil,     asistente = luciaG, estado = EstadoAsignacionAsistente.ACEPTADA))
+        profesionalAsistenteRepository.save(ProfesionalAsistente(profesional = sofi.perfil,    asistente = luciaG, estado = EstadoAsignacionAsistente.ACEPTADA))
+        profesionalAsistenteRepository.save(ProfesionalAsistente(profesional = diego.perfil,   asistente = rodrigo, estado = EstadoAsignacionAsistente.ACEPTADA))
 
         // ─── CLIENTES ───────────────────────────────────────────────────────
         val clientesSeed = listOf(

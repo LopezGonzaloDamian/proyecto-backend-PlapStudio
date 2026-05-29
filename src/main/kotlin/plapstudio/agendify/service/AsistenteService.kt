@@ -2,6 +2,7 @@ package plapstudio.agendify.service
 
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import plapstudio.agendify.domain.EstadoAsignacionAsistente
 import plapstudio.agendify.domain.PerfilProfesional
 import plapstudio.agendify.domain.ProfesionalAsistente
 import plapstudio.agendify.domain.Turno
@@ -43,7 +44,7 @@ class AsistenteService(
     }
 
     fun turnosDeAsistente(asistenteId: Long): List<Turno> {
-        val asignaciones = profesionalesDe(asistenteId)
+        val asignaciones = profesionalesAceptadosDe(asistenteId)
         return asignaciones.flatMap { turnoRepository.findByAgendaProfesional(it.profesional) }
     }
 
@@ -85,12 +86,31 @@ class AsistenteService(
         if (!asistente.esAsistente()) {
             throw BusinessException("El email ingresado no corresponde a un usuario con rol ASISTENTE")
         }
-        if (profesionalAsistenteRepository.existsByProfesionalAndAsistente(profesional, asistente)) {
-            throw ConflictException("Ya existe la asignación")
+        val existente = profesionalAsistenteRepository.findByProfesionalAndAsistente(profesional, asistente)
+        if (existente != null) {
+            if (existente.estado == EstadoAsignacionAsistente.RECHAZADA) {
+                existente.estado = EstadoAsignacionAsistente.PENDIENTE
+                return profesionalAsistenteRepository.save(existente)
+            }
+            throw ConflictException("Ya existe una invitacion para ese asistente")
         }
         return profesionalAsistenteRepository.save(
             ProfesionalAsistente(profesional = profesional, asistente = asistente)
         )
+    }
+
+    @Transactional
+    fun aceptar(asistenteId: Long, asignacionId: UUID): ProfesionalAsistente {
+        val asignacion = asignacionDelAsistente(asistenteId, asignacionId)
+        asignacion.estado = EstadoAsignacionAsistente.ACEPTADA
+        return profesionalAsistenteRepository.save(asignacion)
+    }
+
+    @Transactional
+    fun rechazar(asistenteId: Long, asignacionId: UUID): ProfesionalAsistente {
+        val asignacion = asignacionDelAsistente(asistenteId, asignacionId)
+        asignacion.estado = EstadoAsignacionAsistente.RECHAZADA
+        return profesionalAsistenteRepository.save(asignacion)
     }
 
     @Transactional
@@ -101,9 +121,29 @@ class AsistenteService(
     }
 
     private fun validarProfesionalAsignado(asistenteId: Long, profesional: PerfilProfesional) {
-        val asignado = profesionalesDe(asistenteId).any { it.profesional.id == profesional.id }
+        val asignado = profesionalesAceptadosDe(asistenteId).any { it.profesional.id == profesional.id }
         if (!asignado) {
             throw BusinessException("El asistente no tiene asignada esta agenda")
         }
+    }
+
+    private fun profesionalesAceptadosDe(asistenteId: Long): List<ProfesionalAsistente> {
+        val asistente = usuarioRepository.findById(asistenteId)
+            .orElseThrow { NotFoundException("Usuario asistente no encontrado con id: $asistenteId") }
+        if (!asistente.esAsistente()) {
+            throw BusinessException("El usuario no tiene rol ASISTENTE")
+        }
+        return profesionalAsistenteRepository.findByAsistenteAndEstado(asistente, EstadoAsignacionAsistente.ACEPTADA)
+    }
+
+    private fun asignacionDelAsistente(asistenteId: Long, asignacionId: UUID): ProfesionalAsistente {
+        val asistente = usuarioRepository.findById(asistenteId)
+            .orElseThrow { NotFoundException("Usuario asistente no encontrado con id: $asistenteId") }
+        val asignacion = profesionalAsistenteRepository.findById(asignacionId)
+            .orElseThrow { NotFoundException("Asignacion no encontrada con id: $asignacionId") }
+        if (asignacion.asistente.id != asistente.id) {
+            throw BusinessException("No podes responder una invitacion de otro asistente")
+        }
+        return asignacion
     }
 }
