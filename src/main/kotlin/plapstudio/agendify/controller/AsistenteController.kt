@@ -88,6 +88,24 @@ class AsistenteController(
         return mapper.toAsistenteAsignacionDto(service.asignar(req.profesionalId, req.asistenteEmail))
     }
 
+    @PatchMapping("/{usuarioId}/profesionales/{asignacionId}/aceptar")
+    fun aceptar(
+        @PathVariable usuarioId: Long,
+        @PathVariable asignacionId: UUID
+    ): AsistenteAsignacionDto {
+        authGuard.requireUser(usuarioId)
+        return mapper.toAsistenteAsignacionDto(service.aceptar(usuarioId, asignacionId))
+    }
+
+    @PatchMapping("/{usuarioId}/profesionales/{asignacionId}/rechazar")
+    fun rechazar(
+        @PathVariable usuarioId: Long,
+        @PathVariable asignacionId: UUID
+    ): AsistenteAsignacionDto {
+        authGuard.requireUser(usuarioId)
+        return mapper.toAsistenteAsignacionDto(service.rechazar(usuarioId, asignacionId))
+    }
+
     @DeleteMapping("/{id}")
     fun desasignar(@PathVariable id: UUID) {
         authGuard.requireAssignmentManager(id)

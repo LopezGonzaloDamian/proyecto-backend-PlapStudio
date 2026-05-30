@@ -302,9 +302,11 @@ data class AsistenteAsignacionDto(
     val profesionalId: Long,
     val profesionalNombre: String,
     val profesionalEspecialidad: String,
+    val profesionalAvatarUrl: String?,
     val asistenteId: Long,
     val asistenteNombre: String,
     val asistenteEmail: String,
+    val estado: String,
     val asignadoEn: LocalDateTime
 )
 
