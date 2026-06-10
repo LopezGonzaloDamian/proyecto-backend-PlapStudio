@@ -365,11 +365,6 @@ class Bootstrap {
             cuerpo  = "Tenes un turno confirmado con Dra. Martina Rios el 22/04 a las 10:30."
         ))
         notificacionRepository.save(Notificacion(
-            usuario = santi.usuario, canal = "IN_APP",
-            titulo  = "Pago pendiente",
-            cuerpo  = "El turno de nutricion tiene un pago online disponible."
-        ))
-        notificacionRepository.save(Notificacion(
             usuario = martina.usuario, canal = "IN_APP",
             titulo  = "Nuevo turno reservado",
             cuerpo  = "Carlos Lopez reservo una sesion para hoy a las 10:30."
