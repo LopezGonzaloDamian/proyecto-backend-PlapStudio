@@ -1,0 +1,46 @@
+package plapstudio.agendify.domain
+
+import jakarta.persistence.*
+import java.math.BigDecimal
+import java.time.LocalDateTime
+import java.util.UUID
+
+@Entity
+@Table(name = "pagos")
+class Pago(
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    var id: UUID? = null,
+
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "turno_id", nullable = false)
+    val turno: Turno,
+
+    var monto: BigDecimal,
+    var moneda: String = "ARS",
+
+    @Column(precision = 5, scale = 2)
+    var porcentajeComision: BigDecimal? = BigDecimal.ZERO,
+
+    @Column(precision = 12, scale = 2)
+    var montoComision: BigDecimal? = BigDecimal.ZERO,
+
+    @Enumerated(EnumType.STRING)
+    var estado: EstadoPago = EstadoPago.PENDIENTE,
+
+    @Enumerated(EnumType.STRING)
+    var origen: OrigenPago? = OrigenPago.EXTERNO,
+
+    var referenciaProveedorMock: String? = null,
+    var pagadoEn: LocalDateTime? = null
+)
+
+//------------------------------------------
+
+enum class EstadoPago {
+    PENDIENTE, APROBADO, RECHAZADO, REEMBOLSADO
+}
+
+enum class OrigenPago {
+    ONLINE, EXTERNO
+}

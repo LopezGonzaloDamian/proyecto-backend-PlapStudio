@@ -5,5 +5,57 @@ server:
     whitelabel:
       enabled: false
     include-message: always
-    # Esto de abajo para que no aparezca la traza de los errores
     include-stacktrace: never
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/db_agendify
+    username: agendify
+    password: agendify
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    open-in-view: false
+    show-sql: true
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        format_sql: true
+logging:
+  level:
+    root: INFO
+agendify:
+  auth:
+    token-secret: ${AGENDIFY_AUTH_SECRET:agendify-dev-secret}
+    token-days: 30
+    google:
+      enabled: true
+      client-id: ${GOOGLE_CLIENT_ID:${VITE_GOOGLE_CLIENT_ID:}}
+      token-info-base-url: https://oauth2.googleapis.com
+  chatbot:
+    gemini:
+      enabled: true
+      base-url: https://generativelanguage.googleapis.com
+      api-key: ${GEMINI_API_KEY:${API_KEY_GEMINI:}}
+      model: gemini-2.0-flash
+
+---
+spring:
+  config:
+    activate:
+      on-profile: docker
+  datasource:
+    url: jdbc:postgresql://postgres:5432/db_agendify
+agendify:
+  auth:
+    token-secret: ${AGENDIFY_AUTH_SECRET:agendify-dev-secret}
+    token-days: 30
+    google:
+      enabled: true
+      client-id: ${GOOGLE_CLIENT_ID:${VITE_GOOGLE_CLIENT_ID:}}
+      token-info-base-url: https://oauth2.googleapis.com
+  chatbot:
+    gemini:
+      enabled: true
+      base-url: https://generativelanguage.googleapis.com
+      api-key: ${GEMINI_API_KEY:${API_KEY_GEMINI:}}
+      model: gemini-2.0-flash
