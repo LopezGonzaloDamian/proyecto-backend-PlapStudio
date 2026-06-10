@@ -9,6 +9,7 @@ import plapstudio.agendify.domain.PerfilCliente
 import plapstudio.agendify.domain.PerfilProfesional
 import plapstudio.agendify.domain.Usuario
 import plapstudio.agendify.dto.AuthResponse
+import plapstudio.agendify.dto.ActivarRolRequest
 import plapstudio.agendify.dto.GoogleLoginRequest
 import plapstudio.agendify.dto.LoginRequest
 import plapstudio.agendify.dto.Mapper
@@ -132,6 +133,25 @@ class AuthService(
             precio = req.precio,
             servicios = req.servicios
         )
+        return buildAuthResponse(usuarioRepository.save(usuario))
+    }
+
+    @Transactional
+    fun activarRol(usuarioId: Long, req: ActivarRolRequest): AuthResponse {
+        val usuario = usuarioRepository.findById(usuarioId)
+            .orElseThrow { UnauthorizedException("La sesion ya no es valida") }
+        if (!usuario.activo) throw UnauthorizedException("Usuario deshabilitado")
+
+        val rolNombre = req.rol.uppercase()
+        if (rolNombre !in setOf("CLIENTE", "ASISTENTE")) {
+            throw BusinessException("Solo se puede activar perfil cliente o asistente")
+        }
+
+        val rol = resolveAllowedRole(rolNombre)
+        usuario.roles.removeIf { it.nombre == "SIN_DEFINIR" }
+        usuario.roles.add(rol)
+        ensureProfilesForRole(usuario, rolNombre, especialidad = null)
+
         return buildAuthResponse(usuarioRepository.save(usuario))
     }
 
