@@ -51,6 +51,27 @@ class Mapper {
         servicios      = perfil.servicios.toList()
     )
 
+    fun toResenaDto(resena: ResenaProfesional): ResenaDto {
+        val nombre = resena.cliente.usuario.nombreCompleto
+        val iniciales = nombre
+            .split(" ")
+            .filter { it.isNotBlank() }
+            .take(2)
+            .joinToString("") { it.first().uppercase() }
+            .ifBlank { "CL" }
+        return ResenaDto(
+            id               = resena.id!!,
+            profesionalId    = resena.profesional.id!!,
+            clienteId        = resena.cliente.id!!,
+            clienteNombre    = nombre,
+            clienteIniciales = iniciales,
+            turnoId          = resena.turno.id!!,
+            calificacion     = resena.calificacion,
+            comentario       = resena.comentario,
+            creadaEn         = resena.creadaEn
+        )
+    }
+
     fun toClienteDto(perfil: PerfilCliente): ClienteDto = ClienteDto(
         id             = perfil.id!!,
         nombreCompleto = perfil.usuario.nombreCompleto,

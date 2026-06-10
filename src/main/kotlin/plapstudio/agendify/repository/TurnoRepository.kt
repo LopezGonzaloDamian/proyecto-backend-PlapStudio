@@ -1,6 +1,7 @@
 package plapstudio.agendify.repository
 
 import plapstudio.agendify.domain.Agenda
+import plapstudio.agendify.domain.EstadoTurno
 import plapstudio.agendify.domain.PerfilCliente
 import plapstudio.agendify.domain.PerfilProfesional
 import plapstudio.agendify.domain.Turno
@@ -15,5 +16,6 @@ interface TurnoRepository : JpaRepository<Turno, UUID> {
     fun findByAgenda(agenda: Agenda): List<Turno>
     fun findByAgendaProfesional(profesional: PerfilProfesional): List<Turno>
     fun findByAgendaProfesionalAndComisionManualPendienteTrue(profesional: PerfilProfesional): List<Turno>
+    fun findByClienteAndEstadoAndIniciaEnBefore(cliente: PerfilCliente, estado: EstadoTurno, iniciaEn: LocalDateTime): List<Turno>
     fun existsByAgendaAndIniciaEn(agenda: Agenda, iniciaEn: LocalDateTime): Boolean
 }
