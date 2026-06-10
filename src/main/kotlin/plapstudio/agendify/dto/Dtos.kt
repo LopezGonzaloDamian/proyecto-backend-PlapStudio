@@ -314,3 +314,21 @@ data class AsistenteAsignarRequest(
     val profesionalId: Long,
     val asistenteEmail: String
 )
+
+data class ResenaDto(
+    val id: UUID,
+    val profesionalId: Long,
+    val clienteId: Long,
+    val clienteNombre: String,
+    val clienteIniciales: String,
+    val turnoId: UUID,
+    val calificacion: Int,
+    val comentario: String,
+    val creadaEn: LocalDateTime
+)
+
+data class ResenaCreateRequest(
+    val turnoId: UUID,
+    val calificacion: Int,
+    val comentario: String = ""
+)
