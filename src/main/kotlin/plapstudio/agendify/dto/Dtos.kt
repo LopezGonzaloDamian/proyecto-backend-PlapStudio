@@ -44,6 +44,10 @@ data class SeleccionRolRequest(
     val servicios: List<String>? = null
 )
 
+data class ActivarRolRequest(
+    val rol: String = ""
+)
+
 data class AuthResponse(
     val token: String,
     val usuario: UsuarioDto

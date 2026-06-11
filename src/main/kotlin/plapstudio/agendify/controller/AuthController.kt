@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
+import plapstudio.agendify.dto.ActivarRolRequest
 import plapstudio.agendify.auth.AuthGuard
 import plapstudio.agendify.dto.AuthResponse
 import plapstudio.agendify.dto.GoogleLoginRequest
@@ -41,4 +42,8 @@ class AuthController(
     @PostMapping("/select-role")
     fun selectRole(@RequestBody req: SeleccionRolRequest): AuthResponse =
         authService.seleccionarRol(authGuard.requireAuthenticated(allowPendingRole = true).id!!, req)
+
+    @PostMapping("/activate-role")
+    fun activateRole(@RequestBody req: ActivarRolRequest): AuthResponse =
+        authService.activarRol(authGuard.requireAuthenticated().id!!, req)
 }
