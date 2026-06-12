@@ -258,15 +258,16 @@ class Bootstrap {
         )
 
         val turnosCreados = turnosSeed.map { t ->
+            val precio = precioTurnoSeed(t.agenda.profesional, t.notas)
             val turno = turnoRepository.save(Turno(
                 agenda          = t.agenda,
                 cliente         = t.cliente,
                 iniciaEn        = t.iniciaEn,
                 duracionMinutos = t.duracion,
+                precio          = precio,
                 estado          = t.estado,
                 notas           = t.notas
             ))
-            val precio = t.agenda.profesional.precio
             if (t.pagar) {
                 val porcentajeComision = BigDecimal("5.00")
                 val montoComision = precio.multiply(porcentajeComision)
@@ -342,11 +343,13 @@ class Bootstrap {
         )
 
         resenasExtra.forEach { seed ->
+            val precio = precioTurnoSeed(seed.profesional.perfil, "")
             val turno = turnoRepository.save(Turno(
                 agenda          = seed.profesional.agenda,
                 cliente         = seed.cliente.perfil,
                 iniciaEn        = seed.iniciaEn,
                 duracionMinutos = 45,
+                precio          = precio,
                 estado          = EstadoTurno.CONFIRMADO,
                 notas           = "Turno calificado"
             ))
@@ -384,6 +387,9 @@ class Bootstrap {
             telefono       = t.telefono,
             roles          = mutableSetOf(rolProfesional)
         ))
+        val serviciosConPrecio = t.servicios
+            .mapIndexed { index, nombre -> ServicioProfesional(nombre, precioServicio(t.email, nombre, index, t.precio)) }
+            .toMutableList()
         val perfil = perfilProfesionalRepository.save(PerfilProfesional(
             usuario             = u,
             especialidad        = t.especialidad,
@@ -396,7 +402,8 @@ class Bootstrap {
             cobertura           = t.cobertura,
             matriculaNacional   = t.matriculaNacional,
             matriculaProvincial = t.matriculaProvincial,
-            servicios           = t.servicios.toMutableList()
+            servicios           = t.servicios.toMutableList(),
+            serviciosConPrecio  = serviciosConPrecio
         ))
         val agenda = agendaRepository.save(Agenda(
             profesional = perfil,
@@ -416,4 +423,64 @@ class Bootstrap {
         configuracionHorariaRepository.saveAll(configs)
         return ProfRecord(u, perfil, agenda)
     }
+
+    private fun precioServicio(email: String, nombre: String, index: Int, precioBase: BigDecimal): BigDecimal =
+        when (email) {
+            "martina.rios@gmail.com" -> when (nombre) {
+                "Consulta inicial" -> BigDecimal("85000")
+                "Control mensual" -> BigDecimal("65000")
+                "Plan alimentario" -> BigDecimal("95000")
+                else -> precioBase
+            }
+            "diego.benitez@gmail.com" -> when (nombre) {
+                "Evaluacion" -> BigDecimal("70000")
+                "Sesion de rehabilitacion" -> BigDecimal("82000")
+                "Masoterapia" -> BigDecimal("76000")
+                else -> precioBase
+            }
+            "camila.duarte@gmail.com" -> when (nombre) {
+                "Control odontologico" -> BigDecimal("60000")
+                "Limpieza dental" -> BigDecimal("90000")
+                "Restauracion" -> BigDecimal("120000")
+                else -> precioBase
+            }
+            "valeria.sosa@gmail.com" -> when (nombre) {
+                "Primera entrevista" -> BigDecimal("95000")
+                "Sesion individual" -> BigDecimal("88000")
+                "Seguimiento online" -> BigDecimal("70000")
+                else -> precioBase
+            }
+            "leo.barrios@gmail.com" -> when (nombre) {
+                "Corte clasico" -> BigDecimal("13000")
+                "Corte y barba" -> BigDecimal("18000")
+                "Perfilado de barba" -> BigDecimal("8000")
+                else -> precioBase
+            }
+            "paula.gimenez@gmail.com" -> when (nombre) {
+                "Corte y brushing" -> BigDecimal("13000")
+                "Coloracion" -> BigDecimal("20000")
+                "Tratamiento capilar" -> BigDecimal("23000")
+                else -> precioBase
+            }
+            "sofi.acosta@gmail.com" -> when (nombre) {
+                "Esmaltado semipermanente" -> BigDecimal("18000")
+                "Kapping" -> BigDecimal("24000")
+                "Nail art" -> BigDecimal("28000")
+                else -> precioBase
+            }
+            "majo.ferreira@gmail.com" -> when (nombre) {
+                "Maquillaje social" -> BigDecimal("65000")
+                "Maquillaje para eventos" -> BigDecimal("90000")
+                "Prueba de novia" -> BigDecimal("130000")
+                else -> precioBase
+            }
+            else -> precioBase.add(BigDecimal(index * 5000))
+        }
+
+    private fun precioTurnoSeed(profesional: PerfilProfesional, notas: String): BigDecimal =
+        profesional.serviciosConPrecio
+            .firstOrNull { notas.contains(it.nombre, ignoreCase = true) }
+            ?.precio
+            ?: profesional.serviciosConPrecio.firstOrNull()?.precio
+            ?: profesional.precio
 }

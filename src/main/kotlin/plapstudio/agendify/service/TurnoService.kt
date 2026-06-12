@@ -80,7 +80,11 @@ class TurnoService(
         if (turnoRepository.existsByAgendaAndIniciaEn(agenda, req.iniciaEn)) {
             throw BusinessException("Ya existe un turno en esa fecha y horario")
         }
-        val generaComisionPendiente = !req.pagarAlReservar && agenda.profesional.precio > BigDecimal.ZERO
+        val precioTurno = precioServicioSolicitado(agenda.profesional, req.notas)
+            ?: req.precioServicio
+            ?.takeIf { it > BigDecimal.ZERO }
+            ?: agenda.profesional.precio
+        val generaComisionPendiente = !req.pagarAlReservar && precioTurno > BigDecimal.ZERO
         val turno = turnoRepository.save(Turno(
             agenda          = agenda,
             cliente         = cliente,
@@ -90,12 +94,13 @@ class TurnoService(
             clienteExternoEmail    = req.clienteExternoEmail?.trim()?.takeIf { it.isNotBlank() },
             iniciaEn        = req.iniciaEn,
             duracionMinutos = req.duracionMinutos,
+            precio          = precioTurno,
             notas           = req.notas,
             estado          = EstadoTurno.CONFIRMADO,
             comisionManualPendiente = generaComisionPendiente
         ))
         if (req.pagarAlReservar) {
-            val senaReserva = agenda.profesional.precio
+            val senaReserva = precioTurno
                 .multiply(BigDecimal("0.5"))
                 .setScale(0, RoundingMode.HALF_UP)
                 .max(BigDecimal("500"))
@@ -123,7 +128,7 @@ class TurnoService(
                 comisionPendiente.add(comisionBasePorcentaje)
             pagoRepository.save(Pago(
                 turno              = turno,
-                monto              = agenda.profesional.precio,
+                monto              = precioTurno,
                 porcentajeComision = BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP),
                 montoComision      = BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP),
                 estado             = EstadoPago.APROBADO,
@@ -235,6 +240,11 @@ class TurnoService(
         monto.multiply(porcentaje)
             .divide(cien, 2, RoundingMode.HALF_UP)
             .setScale(0, RoundingMode.HALF_UP)
+
+    private fun precioServicioSolicitado(profesional: PerfilProfesional, notas: String): BigDecimal? =
+        profesional.serviciosConPrecio
+            .firstOrNull { notas.contains(it.nombre, ignoreCase = true) }
+            ?.precio
 
     private fun restarComisionPendiente(profesional: PerfilProfesional) {
         val actual = profesional.comisionPendientePorcentaje ?: BigDecimal.ZERO
