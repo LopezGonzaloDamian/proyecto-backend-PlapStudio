@@ -6,6 +6,12 @@ import java.math.BigDecimal
 
 @Component
 class Mapper {
+    private fun serviciosConPrecio(perfil: PerfilProfesional): List<ServicioProfesionalDto> =
+        if (perfil.serviciosConPrecio.isNotEmpty()) {
+            perfil.serviciosConPrecio.map { ServicioProfesionalDto(it.nombre, it.precio) }
+        } else {
+            perfil.servicios.map { ServicioProfesionalDto(it, perfil.precio) }
+        }
 
     fun toUsuarioDto(usuario: Usuario): UsuarioDto = UsuarioDto(
         id                  = usuario.id!!,
@@ -37,6 +43,7 @@ class Mapper {
         matriculaNacional   = perfil.matriculaNacional,
         matriculaProvincial = perfil.matriculaProvincial,
         servicios           = perfil.servicios.toList(),
+        serviciosConPrecio  = serviciosConPrecio(perfil),
         agendas             = agendas.map { toAgendaResumenDto(it) }
     )
 
@@ -48,7 +55,8 @@ class Mapper {
         localidad      = perfil.localidad,
         precio         = perfil.precio,
         destacado      = perfil.destacado,
-        servicios      = perfil.servicios.toList()
+        servicios      = perfil.servicios.toList(),
+        serviciosConPrecio = serviciosConPrecio(perfil)
     )
 
     fun toResenaDto(resena: ResenaProfesional): ResenaDto {
@@ -127,6 +135,7 @@ class Mapper {
         iniciaEn          = turno.iniciaEn,
         duracionMinutos   = turno.duracionMinutos,
         estado            = turno.estado.name,
+        precio            = turno.precio,
         notas             = turno.notas,
         pago              = pago?.let { toPagoDto(it) }
     )

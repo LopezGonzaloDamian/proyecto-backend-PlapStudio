@@ -4,6 +4,15 @@ import com.fasterxml.jackson.annotation.JsonIgnore
 import jakarta.persistence.*
 import java.math.BigDecimal
 
+@Embeddable
+data class ServicioProfesional(
+    @Column(name = "nombre")
+    var nombre: String = "",
+
+    @Column(name = "precio", precision = 12, scale = 2)
+    var precio: BigDecimal = BigDecimal.ZERO
+)
+
 @Entity
 @Table(name = "perfiles_profesional")
 class PerfilProfesional(
@@ -37,7 +46,14 @@ class PerfilProfesional(
         joinColumns = [JoinColumn(name = "perfil_profesional_id")]
     )
     @Column(name = "servicio")
-    var servicios: MutableList<String> = mutableListOf()
+    var servicios: MutableList<String> = mutableListOf(),
+
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(
+        name = "perfil_profesional_servicios_precio",
+        joinColumns = [JoinColumn(name = "perfil_profesional_id")]
+    )
+    var serviciosConPrecio: MutableList<ServicioProfesional> = mutableListOf()
 ) {
     @Id
     var id: Long? = null

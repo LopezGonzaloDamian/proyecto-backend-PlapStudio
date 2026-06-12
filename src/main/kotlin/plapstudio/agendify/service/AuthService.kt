@@ -7,6 +7,7 @@ import plapstudio.agendify.auth.AuthTokenService
 import plapstudio.agendify.auth.GoogleTokenVerifier
 import plapstudio.agendify.domain.PerfilCliente
 import plapstudio.agendify.domain.PerfilProfesional
+import plapstudio.agendify.domain.ServicioProfesional
 import plapstudio.agendify.domain.Usuario
 import plapstudio.agendify.dto.AuthResponse
 import plapstudio.agendify.dto.ActivarRolRequest
@@ -15,6 +16,7 @@ import plapstudio.agendify.dto.LoginRequest
 import plapstudio.agendify.dto.Mapper
 import plapstudio.agendify.dto.RegistroRequest
 import plapstudio.agendify.dto.SeleccionRolRequest
+import plapstudio.agendify.dto.ServicioProfesionalDto
 import plapstudio.agendify.errors.BusinessException
 import plapstudio.agendify.errors.ConflictException
 import plapstudio.agendify.errors.NotFoundException
@@ -70,7 +72,8 @@ class AuthService(
             localidad = req.localidad,
             direccion = req.direccion,
             precio = req.precio,
-            servicios = req.servicios
+            servicios = req.servicios,
+            serviciosConPrecio = req.serviciosConPrecio
         )
         return buildAuthResponse(usuario)
     }
@@ -131,7 +134,8 @@ class AuthService(
             localidad = req.localidad,
             direccion = req.direccion,
             precio = req.precio,
-            servicios = req.servicios
+            servicios = req.servicios,
+            serviciosConPrecio = req.serviciosConPrecio
         )
         return buildAuthResponse(usuarioRepository.save(usuario))
     }
@@ -192,7 +196,8 @@ class AuthService(
         localidad: String? = null,
         direccion: String? = null,
         precio: BigDecimal? = null,
-        servicios: List<String>? = null
+        servicios: List<String>? = null,
+        serviciosConPrecio: List<ServicioProfesionalDto>? = null
     ) {
         when (rolNombre) {
             "CLIENTE" -> if (usuario.perfilCliente == null) {
@@ -209,6 +214,14 @@ class AuthService(
                     .ifEmpty {
                         if (especialidadNormalizada.isNotBlank()) listOf(especialidadNormalizada) else emptyList()
                     }
+                val serviciosConPrecioNormalizados = serviciosConPrecio.orEmpty()
+                    .map { ServicioProfesional(it.nombre.trim(), it.precio) }
+                    .filter { it.nombre.isNotBlank() && it.precio > BigDecimal.ZERO }
+                    .ifEmpty {
+                        serviciosNormalizados
+                            .map { ServicioProfesional(it, precio ?: BigDecimal.ZERO) }
+                            .filter { it.precio > BigDecimal.ZERO }
+                    }
                 val perfil = usuario.perfilProfesional
                 if (perfil == null) {
                     val nuevoPerfil = PerfilProfesional(
@@ -218,7 +231,8 @@ class AuthService(
                         localidad = localidad?.trim().orEmpty(),
                         direccion = direccion?.trim().orEmpty(),
                         precio = precio ?: BigDecimal.ZERO,
-                        servicios = serviciosNormalizados.toMutableList()
+                        servicios = serviciosNormalizados.toMutableList(),
+                        serviciosConPrecio = serviciosConPrecioNormalizados.toMutableList()
                     )
                     perfilProfesionalRepository.save(nuevoPerfil)
                     usuario.perfilProfesional = nuevoPerfil
@@ -240,6 +254,9 @@ class AuthService(
                     }
                     if (perfil.servicios.isEmpty() && serviciosNormalizados.isNotEmpty()) {
                         perfil.servicios.addAll(serviciosNormalizados)
+                    }
+                    if (perfil.serviciosConPrecio.isEmpty() && serviciosConPrecioNormalizados.isNotEmpty()) {
+                        perfil.serviciosConPrecio.addAll(serviciosConPrecioNormalizados)
                     }
                 }
             }
