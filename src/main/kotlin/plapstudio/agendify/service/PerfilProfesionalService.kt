@@ -9,6 +9,7 @@ import plapstudio.agendify.errors.NotFoundException
 import plapstudio.agendify.repository.AgendaRepository
 import plapstudio.agendify.repository.PerfilProfesionalRepository
 import java.math.BigDecimal
+import java.time.LocalDate
 
 @Service
 class PerfilProfesionalService(
@@ -25,7 +26,7 @@ class PerfilProfesionalService(
     fun findDestacados(): List<PerfilProfesional> =
         perfilProfesionalRepository.findByDestacadoTrue()
 
-    fun buscar(query: String?, especialidad: String?, localidad: String?): List<PerfilProfesional> {
+    fun buscar(query: String?, especialidad: String?, localidad: String?, fechaDeseada: LocalDate?): List<PerfilProfesional> {
         val q  = query?.trim()?.lowercase().orEmpty()
         val es = especialidad?.trim()?.lowercase().orEmpty()
         val ub = localidad?.trim()?.lowercase().orEmpty()
@@ -42,7 +43,12 @@ class PerfilProfesionalService(
                 p.servicios.any { it.lowercase().contains(es) } ||
                 p.serviciosConPrecio.any { it.nombre.lowercase().contains(es) }
             val coincideUb = ub.isEmpty() || p.localidad.lowercase().contains(ub)
-            coincideQuery && coincideEs && coincideUb
+            val coincideFecha = fechaDeseada == null || agendaRepository.findByProfesional(p).any { agenda ->
+                agenda.activa &&
+                !agenda.tieneExcepcionEn(fechaDeseada) &&
+                agenda.configuraciones.any { it.diaSemana == fechaDeseada.dayOfWeek }
+            }
+            coincideQuery && coincideEs && coincideUb && coincideFecha
         }
     }
 

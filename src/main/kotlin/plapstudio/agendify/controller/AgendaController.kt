@@ -55,7 +55,7 @@ class AgendaController(
         @PathVariable id: UUID,
         @RequestBody items: List<ConfiguracionHorariaDto>
     ): AgendaDto {
-        authGuard.requireAgendaOwner(id)
+        authGuard.requireAgendaStaff(id)
         return mapper.toAgendaDto(service.reemplazarConfiguraciones(id, items))
     }
 
@@ -64,7 +64,7 @@ class AgendaController(
         @PathVariable id: UUID,
         @RequestBody dto: ConfiguracionHorariaDto
     ): AgendaDto {
-        authGuard.requireAgendaOwner(id)
+        authGuard.requireAgendaStaff(id)
         return mapper.toAgendaDto(service.agregarConfiguracion(id, dto))
     }
 
@@ -73,7 +73,7 @@ class AgendaController(
         @PathVariable id: UUID,
         @PathVariable configId: UUID
     ): AgendaDto {
-        authGuard.requireAgendaOwner(id)
+        authGuard.requireAgendaStaff(id)
         return mapper.toAgendaDto(service.eliminarConfiguracion(id, configId))
     }
 
