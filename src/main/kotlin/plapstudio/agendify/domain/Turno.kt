@@ -35,7 +35,6 @@ class Turno(
     var precio: BigDecimal = BigDecimal.ZERO,
 
     var notas: String = "",
-    var comisionManualPendiente: Boolean = false,
     val creadoEn: LocalDateTime = LocalDateTime.now(),
     var actualizadoEn: LocalDateTime = LocalDateTime.now()
 ) {

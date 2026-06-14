@@ -84,7 +84,6 @@ class TurnoService(
             ?: req.precioServicio
             ?.takeIf { it > BigDecimal.ZERO }
             ?: agenda.profesional.precio
-        val generaComisionPendiente = !req.pagarAlReservar && precioTurno > BigDecimal.ZERO
         val turno = turnoRepository.save(Turno(
             agenda          = agenda,
             cliente         = cliente,
@@ -96,17 +95,14 @@ class TurnoService(
             duracionMinutos = req.duracionMinutos,
             precio          = precioTurno,
             notas           = req.notas,
-            estado          = EstadoTurno.CONFIRMADO,
-            comisionManualPendiente = generaComisionPendiente
+            estado          = EstadoTurno.CONFIRMADO
         ))
         if (req.pagarAlReservar) {
             val senaReserva = precioTurno
                 .multiply(BigDecimal("0.5"))
                 .setScale(0, RoundingMode.HALF_UP)
                 .max(BigDecimal("500"))
-            val comisionPendiente = agenda.profesional.comisionPendientePorcentaje ?: BigDecimal.ZERO
             val porcentajeComision = comisionBasePorcentaje
-                .add(comisionPendiente)
                 .setScale(2, RoundingMode.HALF_UP)
             val montoComision = calcularComision(senaReserva, porcentajeComision)
             pagoRepository.save(Pago(
@@ -119,13 +115,7 @@ class TurnoService(
                 referenciaProveedorMock = "MOCK-${req.medioPago ?: "PAGO"}-${turno.id}",
                 pagadoEn                = LocalDateTime.now()
             ))
-            agenda.profesional.comisionPendientePorcentaje = BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP)
-            turnoRepository.findByAgendaProfesionalAndComisionManualPendienteTrue(agenda.profesional)
-                .forEach { it.comisionManualPendiente = false }
-        } else if (generaComisionPendiente) {
-            val comisionPendiente = agenda.profesional.comisionPendientePorcentaje ?: BigDecimal.ZERO
-            agenda.profesional.comisionPendientePorcentaje =
-                comisionPendiente.add(comisionBasePorcentaje)
+        } else if (precioTurno > BigDecimal.ZERO) {
             pagoRepository.save(Pago(
                 turno              = turno,
                 monto              = precioTurno,
@@ -205,10 +195,6 @@ class TurnoService(
         val turno          = findById(id)
         val estadoAnterior = turno.estado
         turno.cancelar()
-        if (turno.comisionManualPendiente) {
-            restarComisionPendiente(turno.agenda.profesional)
-            turno.comisionManualPendiente = false
-        }
         if (!motivo.isNullOrBlank()) turno.notas = motivo
         val saved = turnoRepository.save(turno)
         registrarCambio(saved, estadoAnterior)
@@ -245,11 +231,4 @@ class TurnoService(
         profesional.serviciosConPrecio
             .firstOrNull { notas.contains(it.nombre, ignoreCase = true) }
             ?.precio
-
-    private fun restarComisionPendiente(profesional: PerfilProfesional) {
-        val actual = profesional.comisionPendientePorcentaje ?: BigDecimal.ZERO
-        profesional.comisionPendientePorcentaje = actual.subtract(comisionBasePorcentaje)
-            .max(BigDecimal.ZERO)
-            .setScale(2, RoundingMode.HALF_UP)
-    }
 }

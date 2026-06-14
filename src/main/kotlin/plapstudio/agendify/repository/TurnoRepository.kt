@@ -15,7 +15,6 @@ interface TurnoRepository : JpaRepository<Turno, UUID> {
     fun findByCliente(cliente: PerfilCliente): List<Turno>
     fun findByAgenda(agenda: Agenda): List<Turno>
     fun findByAgendaProfesional(profesional: PerfilProfesional): List<Turno>
-    fun findByAgendaProfesionalAndComisionManualPendienteTrue(profesional: PerfilProfesional): List<Turno>
     fun findByClienteAndEstadoAndIniciaEnBefore(cliente: PerfilCliente, estado: EstadoTurno, iniciaEn: LocalDateTime): List<Turno>
     fun existsByAgendaAndIniciaEn(agenda: Agenda, iniciaEn: LocalDateTime): Boolean
 }
