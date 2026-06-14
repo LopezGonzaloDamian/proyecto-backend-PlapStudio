@@ -38,7 +38,6 @@ class Mapper {
         localidad           = perfil.localidad,
         direccion           = perfil.direccion,
         precio              = perfil.precio,
-        comisionPendientePorcentaje = perfil.comisionPendientePorcentaje ?: BigDecimal.ZERO,
         cobertura           = perfil.cobertura,
         matriculaNacional   = perfil.matriculaNacional,
         matriculaProvincial = perfil.matriculaProvincial,

@@ -99,7 +99,6 @@ data class ProfesionalDto(
     val localidad: String,
     val direccion: String,
     val precio: BigDecimal,
-    val comisionPendientePorcentaje: BigDecimal,
     val cobertura: String,
     val matriculaNacional: String,
     val matriculaProvincial: String,
