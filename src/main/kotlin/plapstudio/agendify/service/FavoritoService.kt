@@ -16,9 +16,9 @@ class FavoritoService(
 ) {
 
     fun findByCliente(clienteId: Long): List<Favorito> {
-        val cliente = perfilClienteRepository.findById(clienteId)
+        perfilClienteRepository.findById(clienteId)
             .orElseThrow { NotFoundException("Cliente no encontrado con id: $clienteId") }
-        return favoritoRepository.findByCliente(cliente)
+        return favoritoRepository.findByClienteId(clienteId)
     }
 
     @Transactional
@@ -27,7 +27,7 @@ class FavoritoService(
             .orElseThrow { NotFoundException("Cliente no encontrado con id: $clienteId") }
         val profesional = perfilProfesionalRepository.findById(profesionalId)
             .orElseThrow { NotFoundException("Profesional no encontrado con id: $profesionalId") }
-        val existente = favoritoRepository.findByClienteAndProfesional(cliente, profesional)
+        val existente = favoritoRepository.findByClienteIdAndProfesionalId(clienteId, profesionalId)
         return if (existente != null) {
             favoritoRepository.delete(existente)
             null
