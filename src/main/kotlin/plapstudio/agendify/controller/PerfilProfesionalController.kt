@@ -7,6 +7,7 @@ import plapstudio.agendify.dto.ProfesionalDto
 import plapstudio.agendify.dto.ProfesionalSummaryDto
 import plapstudio.agendify.dto.ProfesionalUpdateRequest
 import plapstudio.agendify.service.PerfilProfesionalService
+import java.time.LocalDate
 
 @RestController
 @RequestMapping("/profesionales")
@@ -21,9 +22,10 @@ class PerfilProfesionalController(
     fun buscar(
         @RequestParam(required = false) query: String?,
         @RequestParam(required = false) especialidad: String?,
-        @RequestParam(required = false) localidad: String?
+        @RequestParam(required = false) localidad: String?,
+        @RequestParam(required = false) fechaDeseada: LocalDate?
     ): List<ProfesionalSummaryDto> =
-        service.buscar(query, especialidad, localidad).map { mapper.toProfesionalSummaryDto(it) }
+        service.buscar(query, especialidad, localidad, fechaDeseada).map { mapper.toProfesionalSummaryDto(it) }
 
     @GetMapping("/destacados")
     fun destacados(): List<ProfesionalSummaryDto> =

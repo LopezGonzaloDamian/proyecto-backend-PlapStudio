@@ -31,7 +31,8 @@ data class RegistroRequest(
     val localidad: String? = null,
     val direccion: String? = null,
     val precio: BigDecimal? = null,
-    val servicios: List<String>? = null
+    val servicios: List<String>? = null,
+    val serviciosConPrecio: List<ServicioProfesionalDto>? = null
 )
 
 data class SeleccionRolRequest(
@@ -41,7 +42,12 @@ data class SeleccionRolRequest(
     val localidad: String? = null,
     val direccion: String? = null,
     val precio: BigDecimal? = null,
-    val servicios: List<String>? = null
+    val servicios: List<String>? = null,
+    val serviciosConPrecio: List<ServicioProfesionalDto>? = null
+)
+
+data class ActivarRolRequest(
+    val rol: String = ""
 )
 
 data class AuthResponse(
@@ -76,6 +82,11 @@ data class UsuarioUpdateRequest(
     val urlAvatar: String = ""
 )
 
+data class ServicioProfesionalDto(
+    val nombre: String,
+    val precio: BigDecimal
+)
+
 data class ProfesionalDto(
     val id: Long,
     val nombreCompleto: String,
@@ -88,11 +99,11 @@ data class ProfesionalDto(
     val localidad: String,
     val direccion: String,
     val precio: BigDecimal,
-    val comisionPendientePorcentaje: BigDecimal,
     val cobertura: String,
     val matriculaNacional: String,
     val matriculaProvincial: String,
     val servicios: List<String>,
+    val serviciosConPrecio: List<ServicioProfesionalDto>,
     val agendas: List<AgendaResumenDto>
 )
 
@@ -104,7 +115,8 @@ data class ProfesionalSummaryDto(
     val localidad: String,
     val precio: BigDecimal,
     val destacado: Boolean,
-    val servicios: List<String>
+    val servicios: List<String>,
+    val serviciosConPrecio: List<ServicioProfesionalDto>
 )
 
 data class ProfesionalUpdateRequest(
@@ -117,7 +129,8 @@ data class ProfesionalUpdateRequest(
     val cobertura: String,
     val matriculaNacional: String,
     val matriculaProvincial: String,
-    val servicios: List<String>
+    val servicios: List<String>,
+    val serviciosConPrecio: List<ServicioProfesionalDto> = emptyList()
 )
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -205,6 +218,7 @@ data class TurnoDto(
     val iniciaEn: LocalDateTime,
     val duracionMinutos: Int,
     val estado: String,
+    val precio: BigDecimal,
     val notas: String,
     val pago: PagoDto?
 )
@@ -219,6 +233,7 @@ data class TurnoCreateRequest(
     val iniciaEn: LocalDateTime,
     val duracionMinutos: Int,
     val notas: String = "",
+    val precioServicio: BigDecimal? = null,
     val pagarAlReservar: Boolean = false,
     val medioPago: String? = null
 )
@@ -313,4 +328,22 @@ data class AsistenteAsignacionDto(
 data class AsistenteAsignarRequest(
     val profesionalId: Long,
     val asistenteEmail: String
+)
+
+data class ResenaDto(
+    val id: UUID,
+    val profesionalId: Long,
+    val clienteId: Long,
+    val clienteNombre: String,
+    val clienteIniciales: String,
+    val turnoId: UUID,
+    val calificacion: Int,
+    val comentario: String,
+    val creadaEn: LocalDateTime
+)
+
+data class ResenaCreateRequest(
+    val turnoId: UUID,
+    val calificacion: Int,
+    val comentario: String = ""
 )

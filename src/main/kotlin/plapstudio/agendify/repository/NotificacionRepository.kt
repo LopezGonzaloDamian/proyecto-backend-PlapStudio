@@ -11,4 +11,6 @@ interface NotificacionRepository : JpaRepository<Notificacion, UUID> {
     fun findByUsuario(usuario: Usuario): List<Notificacion>
     fun findByUsuarioOrderByEnviadaEnDesc(usuario: Usuario): List<Notificacion>
     fun findByUsuarioAndLeidaFalse(usuario: Usuario): List<Notificacion>
+    fun existsByUsuarioAndRecursoTipoAndRecursoId(usuario: Usuario, recursoTipo: String, recursoId: UUID?): Boolean
+    fun findByUsuarioAndRecursoTipoAndRecursoId(usuario: Usuario, recursoTipo: String, recursoId: UUID?): List<Notificacion>
 }

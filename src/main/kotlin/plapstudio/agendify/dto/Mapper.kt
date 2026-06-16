@@ -6,6 +6,12 @@ import java.math.BigDecimal
 
 @Component
 class Mapper {
+    private fun serviciosConPrecio(perfil: PerfilProfesional): List<ServicioProfesionalDto> =
+        if (perfil.serviciosConPrecio.isNotEmpty()) {
+            perfil.serviciosConPrecio.map { ServicioProfesionalDto(it.nombre, it.precio) }
+        } else {
+            perfil.servicios.map { ServicioProfesionalDto(it, perfil.precio) }
+        }
 
     fun toUsuarioDto(usuario: Usuario): UsuarioDto = UsuarioDto(
         id                  = usuario.id!!,
@@ -32,11 +38,11 @@ class Mapper {
         localidad           = perfil.localidad,
         direccion           = perfil.direccion,
         precio              = perfil.precio,
-        comisionPendientePorcentaje = perfil.comisionPendientePorcentaje ?: BigDecimal.ZERO,
         cobertura           = perfil.cobertura,
         matriculaNacional   = perfil.matriculaNacional,
         matriculaProvincial = perfil.matriculaProvincial,
         servicios           = perfil.servicios.toList(),
+        serviciosConPrecio  = serviciosConPrecio(perfil),
         agendas             = agendas.map { toAgendaResumenDto(it) }
     )
 
@@ -48,8 +54,30 @@ class Mapper {
         localidad      = perfil.localidad,
         precio         = perfil.precio,
         destacado      = perfil.destacado,
-        servicios      = perfil.servicios.toList()
+        servicios      = perfil.servicios.toList(),
+        serviciosConPrecio = serviciosConPrecio(perfil)
     )
+
+    fun toResenaDto(resena: ResenaProfesional): ResenaDto {
+        val nombre = resena.cliente.usuario.nombreCompleto
+        val iniciales = nombre
+            .split(" ")
+            .filter { it.isNotBlank() }
+            .take(2)
+            .joinToString("") { it.first().uppercase() }
+            .ifBlank { "CL" }
+        return ResenaDto(
+            id               = resena.id!!,
+            profesionalId    = resena.profesional.id!!,
+            clienteId        = resena.cliente.id!!,
+            clienteNombre    = nombre,
+            clienteIniciales = iniciales,
+            turnoId          = resena.turno.id!!,
+            calificacion     = resena.calificacion,
+            comentario       = resena.comentario,
+            creadaEn         = resena.creadaEn
+        )
+    }
 
     fun toClienteDto(perfil: PerfilCliente): ClienteDto = ClienteDto(
         id             = perfil.id!!,
@@ -106,6 +134,7 @@ class Mapper {
         iniciaEn          = turno.iniciaEn,
         duracionMinutos   = turno.duracionMinutos,
         estado            = turno.estado.name,
+        precio            = turno.precio,
         notas             = turno.notas,
         pago              = pago?.let { toPagoDto(it) }
     )

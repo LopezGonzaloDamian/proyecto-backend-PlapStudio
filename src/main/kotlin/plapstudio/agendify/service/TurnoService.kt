@@ -80,7 +80,10 @@ class TurnoService(
         if (turnoRepository.existsByAgendaAndIniciaEn(agenda, req.iniciaEn)) {
             throw BusinessException("Ya existe un turno en esa fecha y horario")
         }
-        val generaComisionPendiente = !req.pagarAlReservar && agenda.profesional.precio > BigDecimal.ZERO
+        val precioTurno = precioServicioSolicitado(agenda.profesional, req.notas)
+            ?: req.precioServicio
+            ?.takeIf { it > BigDecimal.ZERO }
+            ?: agenda.profesional.precio
         val turno = turnoRepository.save(Turno(
             agenda          = agenda,
             cliente         = cliente,
@@ -90,18 +93,16 @@ class TurnoService(
             clienteExternoEmail    = req.clienteExternoEmail?.trim()?.takeIf { it.isNotBlank() },
             iniciaEn        = req.iniciaEn,
             duracionMinutos = req.duracionMinutos,
+            precio          = precioTurno,
             notas           = req.notas,
-            estado          = EstadoTurno.CONFIRMADO,
-            comisionManualPendiente = generaComisionPendiente
+            estado          = EstadoTurno.CONFIRMADO
         ))
         if (req.pagarAlReservar) {
-            val senaReserva = agenda.profesional.precio
+            val senaReserva = precioTurno
                 .multiply(BigDecimal("0.5"))
                 .setScale(0, RoundingMode.HALF_UP)
                 .max(BigDecimal("500"))
-            val comisionPendiente = agenda.profesional.comisionPendientePorcentaje ?: BigDecimal.ZERO
             val porcentajeComision = comisionBasePorcentaje
-                .add(comisionPendiente)
                 .setScale(2, RoundingMode.HALF_UP)
             val montoComision = calcularComision(senaReserva, porcentajeComision)
             pagoRepository.save(Pago(
@@ -114,16 +115,10 @@ class TurnoService(
                 referenciaProveedorMock = "MOCK-${req.medioPago ?: "PAGO"}-${turno.id}",
                 pagadoEn                = LocalDateTime.now()
             ))
-            agenda.profesional.comisionPendientePorcentaje = BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP)
-            turnoRepository.findByAgendaProfesionalAndComisionManualPendienteTrue(agenda.profesional)
-                .forEach { it.comisionManualPendiente = false }
-        } else if (generaComisionPendiente) {
-            val comisionPendiente = agenda.profesional.comisionPendientePorcentaje ?: BigDecimal.ZERO
-            agenda.profesional.comisionPendientePorcentaje =
-                comisionPendiente.add(comisionBasePorcentaje)
+        } else if (precioTurno > BigDecimal.ZERO) {
             pagoRepository.save(Pago(
                 turno              = turno,
-                monto              = agenda.profesional.precio,
+                monto              = precioTurno,
                 porcentajeComision = BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP),
                 montoComision      = BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP),
                 estado             = EstadoPago.APROBADO,
@@ -200,10 +195,6 @@ class TurnoService(
         val turno          = findById(id)
         val estadoAnterior = turno.estado
         turno.cancelar()
-        if (turno.comisionManualPendiente) {
-            restarComisionPendiente(turno.agenda.profesional)
-            turno.comisionManualPendiente = false
-        }
         if (!motivo.isNullOrBlank()) turno.notas = motivo
         val saved = turnoRepository.save(turno)
         registrarCambio(saved, estadoAnterior)
@@ -236,10 +227,8 @@ class TurnoService(
             .divide(cien, 2, RoundingMode.HALF_UP)
             .setScale(0, RoundingMode.HALF_UP)
 
-    private fun restarComisionPendiente(profesional: PerfilProfesional) {
-        val actual = profesional.comisionPendientePorcentaje ?: BigDecimal.ZERO
-        profesional.comisionPendientePorcentaje = actual.subtract(comisionBasePorcentaje)
-            .max(BigDecimal.ZERO)
-            .setScale(2, RoundingMode.HALF_UP)
-    }
+    private fun precioServicioSolicitado(profesional: PerfilProfesional, notas: String): BigDecimal? =
+        profesional.serviciosConPrecio
+            .firstOrNull { notas.contains(it.nombre, ignoreCase = true) }
+            ?.precio
 }

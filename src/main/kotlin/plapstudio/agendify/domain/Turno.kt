@@ -1,6 +1,7 @@
 package plapstudio.agendify.domain
 
 import jakarta.persistence.*
+import java.math.BigDecimal
 import java.time.LocalDateTime
 import java.util.UUID
 
@@ -30,8 +31,10 @@ class Turno(
     @Enumerated(EnumType.STRING)
     var estado: EstadoTurno = EstadoTurno.CONFIRMADO,
 
+    @Column(precision = 12, scale = 2)
+    var precio: BigDecimal = BigDecimal.ZERO,
+
     var notas: String = "",
-    var comisionManualPendiente: Boolean = false,
     val creadoEn: LocalDateTime = LocalDateTime.now(),
     var actualizadoEn: LocalDateTime = LocalDateTime.now()
 ) {

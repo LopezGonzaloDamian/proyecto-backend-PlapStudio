@@ -27,6 +27,7 @@ class Bootstrap {
     @Autowired private lateinit var favoritoRepository:             FavoritoRepository
     @Autowired private lateinit var notificacionRepository:         NotificacionRepository
     @Autowired private lateinit var profesionalAsistenteRepository: ProfesionalAsistenteRepository
+    @Autowired private lateinit var resenaProfesionalRepository:    ResenaProfesionalRepository
 
     private data class ProfTemplate(
         val email: String, val nombre: String, val telefono: String,
@@ -44,6 +45,13 @@ class Bootstrap {
         val agenda: Agenda, val cliente: PerfilCliente,
         val iniciaEn: LocalDateTime, val duracion: Int, val estado: EstadoTurno,
         val notas: String = "", val pagar: Boolean = false
+    )
+    private data class ResenaSeed(
+        val profesional: ProfRecord,
+        val cliente: ClienteRecord,
+        val iniciaEn: LocalDateTime,
+        val calificacion: Int,
+        val comentario: String
     )
 
     @EventListener(ApplicationReadyEvent::class)
@@ -249,16 +257,17 @@ class Bootstrap {
             TurnoSeed(majo.agenda,    luciaP.perfil, LocalDateTime.of(2026, 4, 24, 16,  0), 45, EstadoTurno.CONFIRMADO, "Maquillaje social", pagar = true)
         )
 
-        turnosSeed.forEach { t ->
+        val turnosCreados = turnosSeed.map { t ->
+            val precio = precioTurnoSeed(t.agenda.profesional, t.notas)
             val turno = turnoRepository.save(Turno(
                 agenda          = t.agenda,
                 cliente         = t.cliente,
                 iniciaEn        = t.iniciaEn,
                 duracionMinutos = t.duracion,
+                precio          = precio,
                 estado          = t.estado,
                 notas           = t.notas
             ))
-            val precio = t.agenda.profesional.precio
             if (t.pagar) {
                 val porcentajeComision = BigDecimal("5.00")
                 val montoComision = precio.multiply(porcentajeComision)
@@ -284,18 +293,79 @@ class Bootstrap {
                     origen             = OrigenPago.EXTERNO
                 ))
             }
+            turno
         }
 
         // ─── NOTIFICACIONES ─────────────────────────────────────────────────
+        val resenasMartina = turnosCreados
+            .filter { it.agenda.profesional.id == martina.perfil.id && it.estado == EstadoTurno.CONFIRMADO }
+            .take(5)
+            .zip(listOf(
+                5 to "Excelente atencion, Martina fue muy clara y me ayudo a ordenar mi alimentacion.",
+                5 to "Muy profesional. Me explico todo con paciencia y el plan fue facil de seguir.",
+                4 to "La consulta estuvo muy bien, sali con indicaciones concretas y utiles.",
+                5 to "Me senti muy comoda durante la atencion. Recomiendo mucho a Martina.",
+                4 to "Buen seguimiento y muy buena predisposicion para responder dudas."
+            ))
+
+        resenasMartina.forEach { (turno, datos) ->
+            val (calificacion, comentario) = datos
+            resenaProfesionalRepository.save(ResenaProfesional(
+                profesional  = martina.perfil,
+                cliente      = turno.cliente!!,
+                turno        = turno,
+                calificacion = calificacion,
+                comentario   = comentario
+            ))
+        }
+
+        val resenasExtra = listOf(
+            ResenaSeed(diego, ana, LocalDateTime.of(2026, 4, 12, 9, 0), 5, "Muy buen trato y ejercicios claros para seguir en casa."),
+            ResenaSeed(diego, nahuel, LocalDateTime.of(2026, 4, 16, 16, 30), 4, "Me ayudo bastante con la molestia. La sesion fue ordenada."),
+
+            ResenaSeed(camila, santi, LocalDateTime.of(2026, 4, 8, 10, 0), 5, "Atencion prolija y explico cada paso del tratamiento."),
+            ResenaSeed(camila, luciaP, LocalDateTime.of(2026, 4, 15, 12, 0), 4, "Muy buena consulta, puntual y cuidadosa."),
+
+            ResenaSeed(valeria, marta, LocalDateTime.of(2026, 4, 9, 18, 0), 5, "Me senti escuchada desde el primer encuentro."),
+            ResenaSeed(valeria, carlos, LocalDateTime.of(2026, 4, 23, 17, 0), 5, "Excelente acompanamiento y mucha claridad."),
+
+            ResenaSeed(leo, carlos, LocalDateTime.of(2026, 4, 11, 19, 30), 5, "Corte impecable y sin esperas."),
+            ResenaSeed(leo, santi, LocalDateTime.of(2026, 4, 25, 18, 45), 4, "Buen servicio y muy comodo reservar por la app."),
+
+            ResenaSeed(paula, ana, LocalDateTime.of(2026, 4, 14, 11, 0), 5, "El color quedo excelente y la atencion fue muy calida."),
+            ResenaSeed(paula, luciaP, LocalDateTime.of(2026, 4, 28, 13, 30), 4, "Muy buen resultado y buen asesoramiento."),
+
+            ResenaSeed(sofi, marta, LocalDateTime.of(2026, 4, 13, 15, 0), 5, "Las unas quedaron hermosas y prolijas."),
+            ResenaSeed(sofi, nahuel, LocalDateTime.of(2026, 4, 27, 17, 30), 4, "Buena atencion y turno puntual."),
+
+            ResenaSeed(majo, luciaP, LocalDateTime.of(2026, 4, 17, 16, 0), 5, "El maquillaje duro toda la noche, excelente."),
+            ResenaSeed(majo, ana, LocalDateTime.of(2026, 4, 29, 18, 0), 5, "Muy profesional, entendio perfecto lo que queria.")
+        )
+
+        resenasExtra.forEach { seed ->
+            val precio = precioTurnoSeed(seed.profesional.perfil, "")
+            val turno = turnoRepository.save(Turno(
+                agenda          = seed.profesional.agenda,
+                cliente         = seed.cliente.perfil,
+                iniciaEn        = seed.iniciaEn,
+                duracionMinutos = 45,
+                precio          = precio,
+                estado          = EstadoTurno.CONFIRMADO,
+                notas           = "Turno calificado"
+            ))
+            resenaProfesionalRepository.save(ResenaProfesional(
+                profesional  = seed.profesional.perfil,
+                cliente      = seed.cliente.perfil,
+                turno        = turno,
+                calificacion = seed.calificacion,
+                comentario   = seed.comentario
+            ))
+        }
+
         notificacionRepository.save(Notificacion(
             usuario = santi.usuario, canal = "IN_APP",
             titulo  = "Recordatorio de turno",
             cuerpo  = "Tenes un turno confirmado con Dra. Martina Rios el 22/04 a las 10:30."
-        ))
-        notificacionRepository.save(Notificacion(
-            usuario = santi.usuario, canal = "IN_APP",
-            titulo  = "Pago pendiente",
-            cuerpo  = "El turno de nutricion tiene un pago online disponible."
         ))
         notificacionRepository.save(Notificacion(
             usuario = martina.usuario, canal = "IN_APP",
@@ -317,6 +387,9 @@ class Bootstrap {
             telefono       = t.telefono,
             roles          = mutableSetOf(rolProfesional)
         ))
+        val serviciosConPrecio = t.servicios
+            .mapIndexed { index, nombre -> ServicioProfesional(nombre, precioServicio(t.email, nombre, index, t.precio)) }
+            .toMutableList()
         val perfil = perfilProfesionalRepository.save(PerfilProfesional(
             usuario             = u,
             especialidad        = t.especialidad,
@@ -329,7 +402,8 @@ class Bootstrap {
             cobertura           = t.cobertura,
             matriculaNacional   = t.matriculaNacional,
             matriculaProvincial = t.matriculaProvincial,
-            servicios           = t.servicios.toMutableList()
+            servicios           = t.servicios.toMutableList(),
+            serviciosConPrecio  = serviciosConPrecio
         ))
         val agenda = agendaRepository.save(Agenda(
             profesional = perfil,
@@ -349,4 +423,64 @@ class Bootstrap {
         configuracionHorariaRepository.saveAll(configs)
         return ProfRecord(u, perfil, agenda)
     }
+
+    private fun precioServicio(email: String, nombre: String, index: Int, precioBase: BigDecimal): BigDecimal =
+        when (email) {
+            "martina.rios@gmail.com" -> when (nombre) {
+                "Consulta inicial" -> BigDecimal("85000")
+                "Control mensual" -> BigDecimal("65000")
+                "Plan alimentario" -> BigDecimal("95000")
+                else -> precioBase
+            }
+            "diego.benitez@gmail.com" -> when (nombre) {
+                "Evaluacion" -> BigDecimal("70000")
+                "Sesion de rehabilitacion" -> BigDecimal("82000")
+                "Masoterapia" -> BigDecimal("76000")
+                else -> precioBase
+            }
+            "camila.duarte@gmail.com" -> when (nombre) {
+                "Control odontologico" -> BigDecimal("60000")
+                "Limpieza dental" -> BigDecimal("90000")
+                "Restauracion" -> BigDecimal("120000")
+                else -> precioBase
+            }
+            "valeria.sosa@gmail.com" -> when (nombre) {
+                "Primera entrevista" -> BigDecimal("95000")
+                "Sesion individual" -> BigDecimal("88000")
+                "Seguimiento online" -> BigDecimal("70000")
+                else -> precioBase
+            }
+            "leo.barrios@gmail.com" -> when (nombre) {
+                "Corte clasico" -> BigDecimal("13000")
+                "Corte y barba" -> BigDecimal("18000")
+                "Perfilado de barba" -> BigDecimal("8000")
+                else -> precioBase
+            }
+            "paula.gimenez@gmail.com" -> when (nombre) {
+                "Corte y brushing" -> BigDecimal("13000")
+                "Coloracion" -> BigDecimal("20000")
+                "Tratamiento capilar" -> BigDecimal("23000")
+                else -> precioBase
+            }
+            "sofi.acosta@gmail.com" -> when (nombre) {
+                "Esmaltado semipermanente" -> BigDecimal("18000")
+                "Kapping" -> BigDecimal("24000")
+                "Nail art" -> BigDecimal("28000")
+                else -> precioBase
+            }
+            "majo.ferreira@gmail.com" -> when (nombre) {
+                "Maquillaje social" -> BigDecimal("65000")
+                "Maquillaje para eventos" -> BigDecimal("90000")
+                "Prueba de novia" -> BigDecimal("130000")
+                else -> precioBase
+            }
+            else -> precioBase.add(BigDecimal(index * 5000))
+        }
+
+    private fun precioTurnoSeed(profesional: PerfilProfesional, notas: String): BigDecimal =
+        profesional.serviciosConPrecio
+            .firstOrNull { notas.contains(it.nombre, ignoreCase = true) }
+            ?.precio
+            ?: profesional.serviciosConPrecio.firstOrNull()?.precio
+            ?: profesional.precio
 }
