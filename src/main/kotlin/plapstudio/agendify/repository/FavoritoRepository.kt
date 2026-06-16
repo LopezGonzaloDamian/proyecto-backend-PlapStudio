@@ -10,6 +10,8 @@ import java.util.UUID
 @Repository
 interface FavoritoRepository : JpaRepository<Favorito, UUID> {
     fun findByCliente(cliente: PerfilCliente): List<Favorito>
+    fun findByClienteId(clienteId: Long): List<Favorito>
     fun existsByClienteAndProfesional(cliente: PerfilCliente, profesional: PerfilProfesional): Boolean
     fun findByClienteAndProfesional(cliente: PerfilCliente, profesional: PerfilProfesional): Favorito?
+    fun findByClienteIdAndProfesionalId(clienteId: Long, profesionalId: Long): Favorito?
 }
