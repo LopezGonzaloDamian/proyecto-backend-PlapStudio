@@ -42,6 +42,16 @@ class ChatbotController(
     { "role": "user", "content": "Como reservo un turno?" }
   ]
 }"""
+                        ),
+                        ExampleObject(
+                            name = "Abrir menu principal",
+                            value = """{
+  "messages": [],
+  "action": {
+    "type": "MAIN_MENU",
+    "targetNodeId": "main_menu"
+  }
+}"""
                         )
                     ]
                 )
@@ -59,8 +69,15 @@ class ChatbotController(
                     ExampleObject(
                         name = "Respuesta exitosa",
                         value = """{
-  "message": "El flujo de reserva en Agendify es: buscar un profesional, revisar disponibilidad y elegir un turno.",
-  "source": "gemini"
+  "message": "Hola, soy el asistente de Agendify. Puedo ayudarte a reservar turnos, entender pagos y senas, configurar agendas o resolver dudas sobre roles.",
+  "source": "menu",
+  "options": [
+    { "id": "reserve_menu", "label": "Reservar turnos", "type": "OPEN_NODE", "targetNodeId": "reserve_menu" },
+    { "id": "specialist_menu", "label": "Para especialistas", "type": "OPEN_NODE", "targetNodeId": "specialist_menu" }
+  ],
+  "currentNodeId": "main_menu",
+  "previousNodeId": null,
+  "suggestedActions": []
 }"""
                     )
                 ]

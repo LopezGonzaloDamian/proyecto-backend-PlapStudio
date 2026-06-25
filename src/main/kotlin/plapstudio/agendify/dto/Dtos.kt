@@ -1,5 +1,15 @@
 package plapstudio.agendify.dto
 
+import jakarta.validation.Valid
+import jakarta.validation.constraints.Email
+import jakarta.validation.constraints.Max
+import jakarta.validation.constraints.Min
+import jakarta.validation.constraints.NotBlank
+import jakarta.validation.constraints.NotEmpty
+import jakarta.validation.constraints.NotNull
+import jakarta.validation.constraints.Positive
+import jakarta.validation.constraints.PositiveOrZero
+import jakarta.validation.constraints.Size
 import java.math.BigDecimal
 import java.time.DayOfWeek
 import java.time.LocalDate
@@ -7,46 +17,64 @@ import java.time.LocalDateTime
 import java.time.LocalTime
 import java.util.UUID
 
-// ──────────────────────────────────────────────────────────────────────────────
-// Auth
-// ──────────────────────────────────────────────────────────────────────────────
-
 data class LoginRequest(
+    @field:Email(message = "El email no es valido")
+    @field:NotBlank(message = "El email es obligatorio")
     val email: String,
+    @field:NotBlank(message = "La contrasena es obligatoria")
+    @field:Size(min = 4, max = 128, message = "La contrasena debe tener entre 4 y 128 caracteres")
     val password: String
 )
 
 data class GoogleLoginRequest(
+    @field:NotBlank(message = "La credencial de Google es obligatoria")
     val credential: String = ""
 )
 
 data class RegistroRequest(
+    @field:Email(message = "El email no es valido")
+    @field:NotBlank(message = "El email es obligatorio")
     val email: String,
+    @field:NotBlank(message = "La contrasena es obligatoria")
+    @field:Size(min = 4, max = 128, message = "La contrasena debe tener entre 4 y 128 caracteres")
     val password: String,
+    @field:NotBlank(message = "El nombre completo es obligatorio")
+    @field:Size(max = 120, message = "El nombre completo no puede superar los 120 caracteres")
     val nombreCompleto: String,
+    @field:NotBlank(message = "El telefono es obligatorio")
+    @field:Size(max = 40, message = "El telefono no puede superar los 40 caracteres")
     val telefono: String,
-    val rol: String, // "CLIENTE" | "PROFESIONAL" | "ASISTENTE"
+    @field:NotBlank(message = "El rol es obligatorio")
+    val rol: String,
     val especialidad: String? = null,
     val biografia: String? = null,
     val localidad: String? = null,
     val direccion: String? = null,
+    @field:Positive(message = "El precio debe ser mayor a cero")
     val precio: BigDecimal? = null,
+    @field:Size(max = 20, message = "No se pueden enviar mas de 20 servicios")
     val servicios: List<String>? = null,
+    @field:Valid
     val serviciosConPrecio: List<ServicioProfesionalDto>? = null
 )
 
 data class SeleccionRolRequest(
+    @field:NotBlank(message = "El rol es obligatorio")
     val rol: String = "",
     val especialidad: String? = null,
     val biografia: String? = null,
     val localidad: String? = null,
     val direccion: String? = null,
+    @field:Positive(message = "El precio debe ser mayor a cero")
     val precio: BigDecimal? = null,
+    @field:Size(max = 20, message = "No se pueden enviar mas de 20 servicios")
     val servicios: List<String>? = null,
+    @field:Valid
     val serviciosConPrecio: List<ServicioProfesionalDto>? = null
 )
 
 data class ActivarRolRequest(
+    @field:NotBlank(message = "El rol es obligatorio")
     val rol: String = ""
 )
 
@@ -54,10 +82,6 @@ data class AuthResponse(
     val token: String,
     val usuario: UsuarioDto
 )
-
-// ──────────────────────────────────────────────────────────────────────────────
-// Usuario
-// ──────────────────────────────────────────────────────────────────────────────
 
 data class UsuarioDto(
     val id: Long,
@@ -72,18 +96,21 @@ data class UsuarioDto(
     val requiereSeleccionRol: Boolean
 )
 
-// ──────────────────────────────────────────────────────────────────────────────
-// Profesional
-// ──────────────────────────────────────────────────────────────────────────────
-
 data class UsuarioUpdateRequest(
+    @field:NotBlank(message = "El nombre completo es obligatorio")
+    @field:Size(max = 120, message = "El nombre completo no puede superar los 120 caracteres")
     val nombreCompleto: String,
+    @field:NotBlank(message = "El telefono es obligatorio")
+    @field:Size(max = 40, message = "El telefono no puede superar los 40 caracteres")
     val telefono: String,
     val urlAvatar: String = ""
 )
 
 data class ServicioProfesionalDto(
+    @field:NotBlank(message = "El nombre del servicio es obligatorio")
+    @field:Size(max = 100, message = "El nombre del servicio no puede superar los 100 caracteres")
     val nombre: String,
+    @field:Positive(message = "El precio del servicio debe ser mayor a cero")
     val precio: BigDecimal
 )
 
@@ -120,22 +147,30 @@ data class ProfesionalSummaryDto(
 )
 
 data class ProfesionalUpdateRequest(
+    @field:NotBlank(message = "La especialidad es obligatoria")
+    @field:Size(max = 120, message = "La especialidad no puede superar los 120 caracteres")
     val especialidad: String,
+    @field:NotBlank(message = "La biografia es obligatoria")
+    @field:Size(max = 1000, message = "La biografia no puede superar los 1000 caracteres")
     val biografia: String,
     val urlAvatar: String,
+    @field:NotBlank(message = "La localidad es obligatoria")
+    @field:Size(max = 120, message = "La localidad no puede superar los 120 caracteres")
     val localidad: String,
+    @field:NotBlank(message = "La direccion es obligatoria")
+    @field:Size(max = 180, message = "La direccion no puede superar los 180 caracteres")
     val direccion: String,
+    @field:PositiveOrZero(message = "El precio no puede ser negativo")
     val precio: BigDecimal,
     val cobertura: String,
     val matriculaNacional: String,
     val matriculaProvincial: String,
+    @field:NotEmpty(message = "Debe haber al menos un servicio")
+    @field:Size(max = 20, message = "No se pueden enviar mas de 20 servicios")
     val servicios: List<String>,
+    @field:Valid
     val serviciosConPrecio: List<ServicioProfesionalDto> = emptyList()
 )
-
-// ──────────────────────────────────────────────────────────────────────────────
-// Cliente
-// ──────────────────────────────────────────────────────────────────────────────
 
 data class ClienteDto(
     val id: Long,
@@ -144,10 +179,6 @@ data class ClienteDto(
     val telefono: String,
     val notas: String
 )
-
-// ──────────────────────────────────────────────────────────────────────────────
-// Agenda + configuración horaria
-// ──────────────────────────────────────────────────────────────────────────────
 
 data class AgendaResumenDto(
     val id: UUID,
@@ -168,29 +199,46 @@ data class AgendaDto(
 )
 
 data class AgendaCreateRequest(
+    @field:Positive(message = "El profesional debe ser valido")
     val profesionalId: Long,
+    @field:NotBlank(message = "El nombre de la agenda es obligatorio")
+    @field:Size(max = 120, message = "El nombre de la agenda no puede superar los 120 caracteres")
     val nombre: String,
+    @field:NotBlank(message = "La descripcion de la agenda es obligatoria")
+    @field:Size(max = 300, message = "La descripcion de la agenda no puede superar los 300 caracteres")
     val descripcion: String
 )
 
 data class AgendaUpdateRequest(
+    @field:NotBlank(message = "El nombre de la agenda es obligatorio")
+    @field:Size(max = 120, message = "El nombre de la agenda no puede superar los 120 caracteres")
     val nombre: String,
+    @field:NotBlank(message = "La descripcion de la agenda es obligatoria")
+    @field:Size(max = 300, message = "La descripcion de la agenda no puede superar los 300 caracteres")
     val descripcion: String,
     val activa: Boolean
 )
 
 data class ConfiguracionHorariaDto(
     val id: UUID?,
+    @field:NotNull(message = "El dia de la semana es obligatorio")
     val diaSemana: DayOfWeek,
+    @field:NotNull(message = "La hora de inicio es obligatoria")
     val inicioSlot: LocalTime,
+    @field:NotNull(message = "La hora de fin es obligatoria")
     val finSlot: LocalTime,
+    @field:Positive(message = "La duracion del slot debe ser mayor a cero")
     val duracionSlotMinutos: Int
 )
 
 data class ExcepcionAgendaDto(
     val id: UUID?,
+    @field:NotNull(message = "La fecha de inicio es obligatoria")
     val fechaInicio: LocalDate,
+    @field:NotNull(message = "La fecha de fin es obligatoria")
     val fechaFin: LocalDate,
+    @field:NotBlank(message = "El motivo es obligatorio")
+    @field:Size(max = 200, message = "El motivo no puede superar los 200 caracteres")
     val motivo: String
 )
 
@@ -199,10 +247,6 @@ data class SlotDto(
     val duracionMinutos: Int,
     val disponible: Boolean
 )
-
-// ──────────────────────────────────────────────────────────────────────────────
-// Turno
-// ──────────────────────────────────────────────────────────────────────────────
 
 data class TurnoDto(
     val id: UUID,
@@ -224,38 +268,47 @@ data class TurnoDto(
 )
 
 data class TurnoCreateRequest(
+    @field:NotNull(message = "La agenda es obligatoria")
     val agendaId: UUID,
+    @field:Positive(message = "El cliente debe ser valido")
     val clienteId: Long? = null,
     val clienteExternoNombre: String? = null,
     val clienteExternoTelefono: String? = null,
     val clienteExternoDni: String? = null,
+    @field:Email(message = "El email del cliente externo no es valido")
     val clienteExternoEmail: String? = null,
+    @field:NotNull(message = "La fecha y hora del turno es obligatoria")
     val iniciaEn: LocalDateTime,
+    @field:Positive(message = "La duracion debe ser mayor a cero")
     val duracionMinutos: Int,
+    @field:Size(max = 600, message = "Las notas no pueden superar los 600 caracteres")
     val notas: String = "",
+    @field:Positive(message = "El precio del servicio debe ser mayor a cero")
     val precioServicio: BigDecimal? = null,
     val pagarAlReservar: Boolean = false,
     val medioPago: String? = null
 )
 
 data class TurnoUpdateRequest(
+    @field:NotNull(message = "La fecha y hora del turno es obligatoria")
     val iniciaEn: LocalDateTime,
+    @field:Positive(message = "La duracion debe ser mayor a cero")
     val duracionMinutos: Int,
+    @field:Size(max = 600, message = "Las notas no pueden superar los 600 caracteres")
     val notas: String,
+    @field:NotBlank(message = "El estado es obligatorio")
     val estado: String
 )
 
 data class TurnoNotasRequest(
+    @field:Size(max = 600, message = "Las notas no pueden superar los 600 caracteres")
     val notas: String
 )
 
 data class TurnoCancelRequest(
+    @field:Size(max = 200, message = "El motivo no puede superar los 200 caracteres")
     val motivo: String? = null
 )
-
-// ──────────────────────────────────────────────────────────────────────────────
-// Pago / factura
-// ──────────────────────────────────────────────────────────────────────────────
 
 data class PagoDto(
     val id: UUID,
@@ -284,10 +337,6 @@ data class FacturaDto(
     val emitidaEn: LocalDateTime
 )
 
-// ──────────────────────────────────────────────────────────────────────────────
-// Favorito / notificación / asistente
-// ──────────────────────────────────────────────────────────────────────────────
-
 data class FavoritoDto(
     val id: UUID,
     val clienteId: Long,
@@ -296,7 +345,9 @@ data class FavoritoDto(
 )
 
 data class FavoritoToggleRequest(
+    @field:Positive(message = "El cliente debe ser valido")
     val clienteId: Long,
+    @field:Positive(message = "El profesional debe ser valido")
     val profesionalId: Long
 )
 
@@ -326,7 +377,10 @@ data class AsistenteAsignacionDto(
 )
 
 data class AsistenteAsignarRequest(
+    @field:Positive(message = "El profesional debe ser valido")
     val profesionalId: Long,
+    @field:Email(message = "El email del asistente no es valido")
+    @field:NotBlank(message = "El email del asistente es obligatorio")
     val asistenteEmail: String
 )
 
@@ -343,7 +397,11 @@ data class ResenaDto(
 )
 
 data class ResenaCreateRequest(
+    @field:NotNull(message = "El turno es obligatorio")
     val turnoId: UUID,
+    @field:Min(value = 1, message = "La calificacion debe estar entre 1 y 5")
+    @field:Max(value = 5, message = "La calificacion debe estar entre 1 y 5")
     val calificacion: Int,
+    @field:Size(max = 600, message = "El comentario no puede superar los 600 caracteres")
     val comentario: String = ""
 )

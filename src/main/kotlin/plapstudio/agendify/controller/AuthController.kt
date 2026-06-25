@@ -1,5 +1,6 @@
 package plapstudio.agendify.controller
 
+import jakarta.validation.Valid
 import org.springframework.web.bind.annotation.CrossOrigin
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PostMapping
@@ -24,15 +25,15 @@ class AuthController(
 ) {
 
     @PostMapping("/login")
-    fun login(@RequestBody req: LoginRequest): AuthResponse =
+    fun login(@Valid @RequestBody req: LoginRequest): AuthResponse =
         authService.login(req)
 
     @PostMapping("/registro")
-    fun registro(@RequestBody req: RegistroRequest): AuthResponse =
+    fun registro(@Valid @RequestBody req: RegistroRequest): AuthResponse =
         authService.registrar(req)
 
     @PostMapping("/google")
-    fun google(@RequestBody req: GoogleLoginRequest): AuthResponse =
+    fun google(@Valid @RequestBody req: GoogleLoginRequest): AuthResponse =
         authService.loginConGoogle(req)
 
     @GetMapping("/me")
@@ -40,10 +41,10 @@ class AuthController(
         authService.me(authGuard.requireAuthenticated(allowPendingRole = true).id!!)
 
     @PostMapping("/select-role")
-    fun selectRole(@RequestBody req: SeleccionRolRequest): AuthResponse =
+    fun selectRole(@Valid @RequestBody req: SeleccionRolRequest): AuthResponse =
         authService.seleccionarRol(authGuard.requireAuthenticated(allowPendingRole = true).id!!, req)
 
     @PostMapping("/activate-role")
-    fun activateRole(@RequestBody req: ActivarRolRequest): AuthResponse =
+    fun activateRole(@Valid @RequestBody req: ActivarRolRequest): AuthResponse =
         authService.activarRol(authGuard.requireAuthenticated().id!!, req)
 }

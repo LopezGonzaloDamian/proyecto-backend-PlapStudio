@@ -24,6 +24,8 @@ logging:
   level:
     root: INFO
 agendify:
+  bootstrap:
+    enabled: true
   auth:
     token-secret: ${AGENDIFY_AUTH_SECRET:agendify-dev-secret}
     token-days: 30
@@ -46,6 +48,8 @@ spring:
   datasource:
     url: jdbc:postgresql://postgres:5432/db_agendify
 agendify:
+  bootstrap:
+    enabled: true
   auth:
     token-secret: ${AGENDIFY_AUTH_SECRET:agendify-dev-secret}
     token-days: 30

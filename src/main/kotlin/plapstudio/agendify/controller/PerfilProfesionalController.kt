@@ -1,5 +1,6 @@
 package plapstudio.agendify.controller
 
+import jakarta.validation.Valid
 import org.springframework.web.bind.annotation.*
 import plapstudio.agendify.auth.AuthGuard
 import plapstudio.agendify.dto.Mapper
@@ -39,7 +40,7 @@ class PerfilProfesionalController(
     }
 
     @PutMapping("/{id}")
-    fun actualizar(@PathVariable id: Long, @RequestBody req: ProfesionalUpdateRequest): ProfesionalDto {
+    fun actualizar(@PathVariable id: Long, @Valid @RequestBody req: ProfesionalUpdateRequest): ProfesionalDto {
         authGuard.requireProfesional(id)
         val perfil  = service.update(id, req)
         val agendas = service.agendasDe(id)
