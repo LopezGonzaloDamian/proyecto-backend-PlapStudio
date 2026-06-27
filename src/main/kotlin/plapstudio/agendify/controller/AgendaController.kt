@@ -1,5 +1,6 @@
 package plapstudio.agendify.controller
 
+import jakarta.validation.Valid
 import org.springframework.format.annotation.DateTimeFormat
 import org.springframework.web.bind.annotation.*
 import plapstudio.agendify.auth.AuthGuard
@@ -18,26 +19,34 @@ class AgendaController(
 ) {
 
     @GetMapping
-    fun getAll(): List<AgendaDto> = service.findAll().map { mapper.toAgendaDto(it) }
+    fun getAll(): List<AgendaDto> {
+        authGuard.requireAdmin()
+        return service.findAll().map { mapper.toAgendaDto(it) }
+    }
 
     @GetMapping("/activas")
-    fun getActivas(): List<AgendaDto> = service.findActivas().map { mapper.toAgendaDto(it) }
+    fun getActivas(): List<AgendaResumenDto> = service.findActivas().map { mapper.toAgendaResumenDto(it) }
 
     @GetMapping("/{id}")
-    fun getById(@PathVariable id: UUID): AgendaDto = mapper.toAgendaDto(service.findById(id))
+    fun getById(@PathVariable id: UUID): AgendaDto {
+        authGuard.requireAgendaStaff(id)
+        return mapper.toAgendaDto(service.findById(id))
+    }
 
     @GetMapping("/profesional/{profesionalId}")
-    fun getByProfesional(@PathVariable profesionalId: Long): List<AgendaDto> =
-        service.findByProfesional(profesionalId).map { mapper.toAgendaDto(it) }
+    fun getByProfesional(@PathVariable profesionalId: Long): List<AgendaDto> {
+        authGuard.requireProfesionalOrAssignedAssistant(profesionalId)
+        return service.findByProfesional(profesionalId).map { mapper.toAgendaDto(it) }
+    }
 
     @PostMapping
-    fun create(@RequestBody req: AgendaCreateRequest): AgendaDto {
+    fun create(@Valid @RequestBody req: AgendaCreateRequest): AgendaDto {
         authGuard.requireProfesional(req.profesionalId)
         return mapper.toAgendaDto(service.create(req))
     }
 
     @PutMapping("/{id}")
-    fun update(@PathVariable id: UUID, @RequestBody req: AgendaUpdateRequest): AgendaDto {
+    fun update(@PathVariable id: UUID, @Valid @RequestBody req: AgendaUpdateRequest): AgendaDto {
         authGuard.requireAgendaOwner(id)
         return mapper.toAgendaDto(service.update(id, req))
     }
@@ -53,7 +62,7 @@ class AgendaController(
     @PutMapping("/{id}/configuraciones")
     fun reemplazarConfiguraciones(
         @PathVariable id: UUID,
-        @RequestBody items: List<ConfiguracionHorariaDto>
+        @Valid @RequestBody items: List<ConfiguracionHorariaDto>
     ): AgendaDto {
         authGuard.requireAgendaStaff(id)
         return mapper.toAgendaDto(service.reemplazarConfiguraciones(id, items))
@@ -62,7 +71,7 @@ class AgendaController(
     @PostMapping("/{id}/configuraciones")
     fun agregarConfiguracion(
         @PathVariable id: UUID,
-        @RequestBody dto: ConfiguracionHorariaDto
+        @Valid @RequestBody dto: ConfiguracionHorariaDto
     ): AgendaDto {
         authGuard.requireAgendaStaff(id)
         return mapper.toAgendaDto(service.agregarConfiguracion(id, dto))
@@ -82,7 +91,7 @@ class AgendaController(
     @PostMapping("/{id}/excepciones")
     fun agregarExcepcion(
         @PathVariable id: UUID,
-        @RequestBody dto: ExcepcionAgendaDto
+        @Valid @RequestBody dto: ExcepcionAgendaDto
     ): AgendaDto {
         authGuard.requireAgendaOwner(id)
         return mapper.toAgendaDto(service.agregarExcepcion(id, dto))

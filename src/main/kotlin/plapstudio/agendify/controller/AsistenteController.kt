@@ -1,5 +1,6 @@
 package plapstudio.agendify.controller
 
+import jakarta.validation.Valid
 import org.springframework.web.bind.annotation.*
 import plapstudio.agendify.auth.AuthGuard
 import plapstudio.agendify.dto.AsistenteAsignacionDto
@@ -43,7 +44,7 @@ class AsistenteController(
     }
 
     @PostMapping("/{usuarioId}/turnos")
-    fun reservarTurno(@PathVariable usuarioId: Long, @RequestBody req: TurnoCreateRequest): TurnoDto {
+    fun reservarTurno(@PathVariable usuarioId: Long, @Valid @RequestBody req: TurnoCreateRequest): TurnoDto {
         authGuard.requireUser(usuarioId)
         val turno = service.reservarTurno(usuarioId, req)
         return mapper.toTurnoDto(turno, turnoService.pagoDe(turno))
@@ -53,7 +54,7 @@ class AsistenteController(
     fun modificarTurno(
         @PathVariable usuarioId: Long,
         @PathVariable turnoId: UUID,
-        @RequestBody req: TurnoUpdateRequest
+        @Valid @RequestBody req: TurnoUpdateRequest
     ): TurnoDto {
         authGuard.requireUser(usuarioId)
         val turno = service.modificarTurno(usuarioId, turnoId, req)
@@ -64,7 +65,7 @@ class AsistenteController(
     fun actualizarNotasTurno(
         @PathVariable usuarioId: Long,
         @PathVariable turnoId: UUID,
-        @RequestBody req: TurnoNotasRequest
+        @Valid @RequestBody req: TurnoNotasRequest
     ): TurnoDto {
         authGuard.requireUser(usuarioId)
         val turno = service.actualizarNotasTurno(usuarioId, turnoId, req.notas)
@@ -75,7 +76,7 @@ class AsistenteController(
     fun cancelarTurno(
         @PathVariable usuarioId: Long,
         @PathVariable turnoId: UUID,
-        @RequestBody(required = false) req: TurnoCancelRequest?
+        @Valid @RequestBody(required = false) req: TurnoCancelRequest?
     ): TurnoDto {
         authGuard.requireUser(usuarioId)
         val turno = service.cancelarTurno(usuarioId, turnoId, req?.motivo)
@@ -83,7 +84,7 @@ class AsistenteController(
     }
 
     @PostMapping
-    fun asignar(@RequestBody req: AsistenteAsignarRequest): AsistenteAsignacionDto {
+    fun asignar(@Valid @RequestBody req: AsistenteAsignarRequest): AsistenteAsignacionDto {
         authGuard.requireProfesional(req.profesionalId)
         return mapper.toAsistenteAsignacionDto(service.asignar(req.profesionalId, req.asistenteEmail))
     }

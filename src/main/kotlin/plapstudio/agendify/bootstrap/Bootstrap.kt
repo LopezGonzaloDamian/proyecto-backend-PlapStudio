@@ -2,9 +2,11 @@ package plapstudio.agendify.bootstrap
 
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.context.event.ApplicationReadyEvent
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.context.event.EventListener
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import plapstudio.agendify.auth.PasswordService
 import plapstudio.agendify.domain.*
 import plapstudio.agendify.repository.*
 import java.math.BigDecimal
@@ -14,6 +16,7 @@ import java.time.LocalDateTime
 import java.time.LocalTime
 
 @Service
+@ConditionalOnProperty(name = ["agendify.bootstrap.enabled"], havingValue = "true", matchIfMissing = true)
 class Bootstrap {
 
     @Autowired private lateinit var rolRepository:                  RolRepository
@@ -28,6 +31,7 @@ class Bootstrap {
     @Autowired private lateinit var notificacionRepository:         NotificacionRepository
     @Autowired private lateinit var profesionalAsistenteRepository: ProfesionalAsistenteRepository
     @Autowired private lateinit var resenaProfesionalRepository:    ResenaProfesionalRepository
+    @Autowired private lateinit var passwordService:                PasswordService
 
     private data class ProfTemplate(
         val email: String, val nombre: String, val telefono: String,
@@ -58,6 +62,7 @@ class Bootstrap {
     @Transactional
     fun load() {
         if (usuarioRepository.count() > 0) return
+        val defaultPasswordHash = passwordService.hash("1234")
 
         // ─── ROLES ──────────────────────────────────────────────────────────
         val rolAdmin       = rolRepository.save(Rol(nombre = "ADMIN",       descripcion = "Administrador del sistema"))
@@ -69,7 +74,7 @@ class Bootstrap {
         // ─── ADMIN ──────────────────────────────────────────────────────────
         usuarioRepository.save(Usuario(
             email          = "admin@gmail.com",
-            contrasenaHash = "1234",
+            contrasenaHash = defaultPasswordHash,
             nombreCompleto = "Admin Agendify",
             telefono       = "1100000000",
             roles          = mutableSetOf(rolAdmin)
@@ -167,7 +172,7 @@ class Bootstrap {
             )
         )
 
-        val profesionales = profesionalesSeed.map { t -> crearProfesional(t, rolProfesional) }
+        val profesionales = profesionalesSeed.map { t -> crearProfesional(t, rolProfesional, defaultPasswordHash) }
 
         val martina = profesionales[0]
         val diego   = profesionales[1]
@@ -181,14 +186,14 @@ class Bootstrap {
         // ─── ASISTENTES ─────────────────────────────────────────────────────
         val luciaG = usuarioRepository.save(Usuario(
             email          = "lucia.gomez@gmail.com",
-            contrasenaHash = "1234",
+            contrasenaHash = defaultPasswordHash,
             nombreCompleto = "Lucia Gomez",
             telefono       = "1100002233",
             roles          = mutableSetOf(rolAsistente)
         ))
         val rodrigo = usuarioRepository.save(Usuario(
             email          = "rodrigo.casco@gmail.com",
-            contrasenaHash = "1234",
+            contrasenaHash = defaultPasswordHash,
             nombreCompleto = "Rodrigo Casco",
             telefono       = "1100003344",
             roles          = mutableSetOf(rolAsistente)
@@ -212,7 +217,7 @@ class Bootstrap {
             val (nombre, telefono) = datos
             val u = usuarioRepository.save(Usuario(
                 email          = email,
-                contrasenaHash = "1234",
+                contrasenaHash = defaultPasswordHash,
                 nombreCompleto = nombre,
                 telefono       = telefono,
                 roles          = mutableSetOf(rolCliente)
@@ -379,10 +384,10 @@ class Bootstrap {
         ))
     }
 
-    private fun crearProfesional(t: ProfTemplate, rolProfesional: Rol): ProfRecord {
+    private fun crearProfesional(t: ProfTemplate, rolProfesional: Rol, defaultPasswordHash: String): ProfRecord {
         val u = usuarioRepository.save(Usuario(
             email          = t.email,
-            contrasenaHash = "1234",
+            contrasenaHash = defaultPasswordHash,
             nombreCompleto = t.nombre,
             telefono       = t.telefono,
             roles          = mutableSetOf(rolProfesional)

@@ -1,5 +1,6 @@
 package plapstudio.agendify.controller
 
+import jakarta.validation.Valid
 import org.springframework.web.bind.annotation.*
 import plapstudio.agendify.auth.AuthGuard
 import plapstudio.agendify.dto.Mapper
@@ -22,7 +23,7 @@ class ResenaProfesionalController(
         service.findByProfesional(profesionalId).map { mapper.toResenaDto(it) }
 
     @PostMapping
-    fun crear(@RequestBody req: ResenaCreateRequest): ResenaDto {
+    fun crear(@Valid @RequestBody req: ResenaCreateRequest): ResenaDto {
         val usuario = authGuard.requireAuthenticated()
         val clienteId = usuario.perfilCliente?.id
             ?: throw ForbiddenException("Solo clientes pueden dejar resenas")

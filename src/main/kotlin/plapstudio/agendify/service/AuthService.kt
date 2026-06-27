@@ -5,6 +5,7 @@ import org.springframework.transaction.annotation.Transactional
 import java.math.BigDecimal
 import plapstudio.agendify.auth.AuthTokenService
 import plapstudio.agendify.auth.GoogleTokenVerifier
+import plapstudio.agendify.auth.PasswordService
 import plapstudio.agendify.domain.PerfilCliente
 import plapstudio.agendify.domain.PerfilProfesional
 import plapstudio.agendify.domain.ServicioProfesional
@@ -34,16 +35,22 @@ class AuthService(
     private val perfilClienteRepository: PerfilClienteRepository,
     private val mapper: Mapper,
     private val authTokenService: AuthTokenService,
-    private val googleTokenVerifier: GoogleTokenVerifier
+    private val googleTokenVerifier: GoogleTokenVerifier,
+    private val passwordService: PasswordService
 ) {
 
+    @Transactional
     fun login(req: LoginRequest): AuthResponse {
         val usuario = usuarioRepository.findByEmail(req.email.trim().lowercase())
             ?: throw UnauthorizedException("Credenciales invalidas")
-        if (usuario.contrasenaHash != req.password) {
+        if (!passwordService.matches(req.password, usuario.contrasenaHash)) {
             throw UnauthorizedException("Credenciales invalidas")
         }
         if (!usuario.activo) throw UnauthorizedException("Usuario deshabilitado")
+        if (passwordService.shouldUpgrade(usuario.contrasenaHash)) {
+            usuario.contrasenaHash = passwordService.hash(req.password)
+            usuarioRepository.save(usuario)
+        }
         return buildAuthResponse(usuario)
     }
 
@@ -57,7 +64,7 @@ class AuthService(
         val usuario = usuarioRepository.save(
             Usuario(
                 email = email,
-                contrasenaHash = req.password,
+                contrasenaHash = passwordService.hash(req.password),
                 nombreCompleto = req.nombreCompleto.trim(),
                 telefono = req.telefono.trim(),
                 roles = mutableSetOf(resolveAllowedRole(req.rol))

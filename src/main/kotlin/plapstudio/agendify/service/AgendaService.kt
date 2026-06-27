@@ -17,16 +17,17 @@ import plapstudio.agendify.repository.AgendaRepository
 import plapstudio.agendify.repository.ConfiguracionHorariaRepository
 import plapstudio.agendify.repository.PerfilProfesionalRepository
 import plapstudio.agendify.repository.TurnoRepository
+import java.time.Duration
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.UUID
 
 @Service
 class AgendaService(
-    private val agendaRepository:               AgendaRepository,
-    private val perfilProfesionalRepository:    PerfilProfesionalRepository,
+    private val agendaRepository: AgendaRepository,
+    private val perfilProfesionalRepository: PerfilProfesionalRepository,
     private val configuracionHorariaRepository: ConfiguracionHorariaRepository,
-    private val turnoRepository:                TurnoRepository
+    private val turnoRepository: TurnoRepository
 ) {
 
     fun findById(id: UUID): Agenda =
@@ -49,20 +50,23 @@ class AgendaService(
         if (!perfil.usuario.esProfesional()) {
             throw BusinessException("Solo un profesional puede crear una agenda")
         }
-        val agenda = Agenda(
-            profesional = perfil,
-            nombre      = req.nombre,
-            descripcion = req.descripcion
+        validarAgenda(req.nombre, req.descripcion)
+        return agendaRepository.save(
+            Agenda(
+                profesional = perfil,
+                nombre = req.nombre.trim(),
+                descripcion = req.descripcion.trim()
+            )
         )
-        return agendaRepository.save(agenda)
     }
 
     @Transactional
     fun update(id: UUID, req: AgendaUpdateRequest): Agenda {
-        val existente         = findById(id)
-        existente.nombre      = req.nombre
-        existente.descripcion = req.descripcion
-        existente.activa      = req.activa
+        validarAgenda(req.nombre, req.descripcion)
+        val existente = findById(id)
+        existente.nombre = req.nombre.trim()
+        existente.descripcion = req.descripcion.trim()
+        existente.activa = req.activa
         return agendaRepository.save(existente)
     }
 
@@ -73,20 +77,19 @@ class AgendaService(
         agendaRepository.save(agenda)
     }
 
-    // ── Configuración horaria ─────────────────────────────────────────────────
-
     @Transactional
     fun reemplazarConfiguraciones(agendaId: UUID, items: List<ConfiguracionHorariaDto>): Agenda {
         val agenda = findById(agendaId)
         agenda.configuraciones.clear()
-        items.forEach {
+        items.forEach { dto ->
+            validarConfiguracion(dto)
             agenda.configuraciones.add(
                 ConfiguracionHoraria(
-                    agenda              = agenda,
-                    diaSemana           = it.diaSemana,
-                    inicioSlot          = it.inicioSlot,
-                    finSlot             = it.finSlot,
-                    duracionSlotMinutos = it.duracionSlotMinutos
+                    agenda = agenda,
+                    diaSemana = dto.diaSemana,
+                    inicioSlot = dto.inicioSlot,
+                    finSlot = dto.finSlot,
+                    duracionSlotMinutos = dto.duracionSlotMinutos
                 )
             )
         }
@@ -96,12 +99,13 @@ class AgendaService(
     @Transactional
     fun agregarConfiguracion(agendaId: UUID, dto: ConfiguracionHorariaDto): Agenda {
         val agenda = findById(agendaId)
+        validarConfiguracion(dto)
         agenda.configuraciones.add(
             ConfiguracionHoraria(
-                agenda              = agenda,
-                diaSemana           = dto.diaSemana,
-                inicioSlot          = dto.inicioSlot,
-                finSlot             = dto.finSlot,
+                agenda = agenda,
+                diaSemana = dto.diaSemana,
+                inicioSlot = dto.inicioSlot,
+                finSlot = dto.finSlot,
                 duracionSlotMinutos = dto.duracionSlotMinutos
             )
         )
@@ -115,17 +119,16 @@ class AgendaService(
         return agendaRepository.save(agenda)
     }
 
-    // ── Excepciones ───────────────────────────────────────────────────────────
-
     @Transactional
     fun agregarExcepcion(agendaId: UUID, dto: ExcepcionAgendaDto): Agenda {
         val agenda = findById(agendaId)
+        validarExcepcion(dto)
         agenda.excepciones.add(
             ExcepcionAgenda(
-                agenda      = agenda,
+                agenda = agenda,
                 fechaInicio = dto.fechaInicio,
-                fechaFin    = dto.fechaFin,
-                motivo      = dto.motivo
+                fechaFin = dto.fechaFin,
+                motivo = dto.motivo.trim()
             )
         )
         return agendaRepository.save(agenda)
@@ -137,8 +140,6 @@ class AgendaService(
         agenda.excepciones.removeIf { it.id == excepcionId }
         return agendaRepository.save(agenda)
     }
-
-    // ── Slots disponibles ─────────────────────────────────────────────────────
 
     fun slotsDisponibles(agendaId: UUID, fecha: LocalDate): List<SlotDto> {
         val agenda = findById(agendaId)
@@ -153,23 +154,56 @@ class AgendaService(
             .filter { it.iniciaEn.toLocalDate() == fecha }
 
         val slots = mutableListOf<SlotDto>()
-        configs.forEach { c ->
-            var actual = LocalDateTime.of(fecha, c.inicioSlot)
-            val limite = LocalDateTime.of(fecha, c.finSlot)
-            while (!actual.plusMinutes(c.duracionSlotMinutos.toLong()).isAfter(limite)) {
-                val finNuevo = actual.plusMinutes(c.duracionSlotMinutos.toLong())
-                val ocupado = turnos.any { t ->
-                    val finExistente = t.iniciaEn.plusMinutes(t.duracionMinutos.toLong())
-                    actual.isBefore(finExistente) && t.iniciaEn.isBefore(finNuevo)
+        configs.forEach { config ->
+            var actual = LocalDateTime.of(fecha, config.inicioSlot)
+            val limite = LocalDateTime.of(fecha, config.finSlot)
+            while (!actual.plusMinutes(config.duracionSlotMinutos.toLong()).isAfter(limite)) {
+                val finNuevo = actual.plusMinutes(config.duracionSlotMinutos.toLong())
+                val ocupado = turnos.any { turno ->
+                    val finExistente = turno.iniciaEn.plusMinutes(turno.duracionMinutos.toLong())
+                    actual.isBefore(finExistente) && turno.iniciaEn.isBefore(finNuevo)
                 }
-                slots.add(SlotDto(
-                    iniciaEn        = actual,
-                    duracionMinutos = c.duracionSlotMinutos,
-                    disponible      = !ocupado
-                ))
+                slots.add(
+                    SlotDto(
+                        iniciaEn = actual,
+                        duracionMinutos = config.duracionSlotMinutos,
+                        disponible = !ocupado
+                    )
+                )
                 actual = finNuevo
             }
         }
         return slots.sortedBy { it.iniciaEn }
+    }
+
+    private fun validarAgenda(nombre: String, descripcion: String) {
+        if (nombre.trim().isBlank()) {
+            throw BusinessException("El nombre de la agenda es obligatorio")
+        }
+        if (descripcion.trim().isBlank()) {
+            throw BusinessException("La descripcion de la agenda es obligatoria")
+        }
+    }
+
+    private fun validarConfiguracion(dto: ConfiguracionHorariaDto) {
+        if (!dto.inicioSlot.isBefore(dto.finSlot)) {
+            throw BusinessException("La hora de inicio debe ser anterior a la hora de fin")
+        }
+        if (dto.duracionSlotMinutos <= 0) {
+            throw BusinessException("La duracion del slot debe ser mayor a cero")
+        }
+        val minutosDisponibles = Duration.between(dto.inicioSlot, dto.finSlot).toMinutes()
+        if (dto.duracionSlotMinutos.toLong() > minutosDisponibles) {
+            throw BusinessException("La duracion del slot no puede superar el rango horario configurado")
+        }
+    }
+
+    private fun validarExcepcion(dto: ExcepcionAgendaDto) {
+        if (dto.fechaFin.isBefore(dto.fechaInicio)) {
+            throw BusinessException("La fecha de fin no puede ser anterior a la fecha de inicio")
+        }
+        if (dto.motivo.trim().isBlank()) {
+            throw BusinessException("El motivo de la excepcion es obligatorio")
+        }
     }
 }
