@@ -2,6 +2,8 @@ package plapstudio.agendify.service
 
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import org.springframework.transaction.support.TransactionSynchronization
+import org.springframework.transaction.support.TransactionSynchronizationManager
 import plapstudio.agendify.domain.EstadoPago
 import plapstudio.agendify.domain.EstadoTurno
 import plapstudio.agendify.domain.HistorialTurno
@@ -24,6 +26,7 @@ import java.math.BigDecimal
 import java.math.RoundingMode
 import java.time.LocalDateTime
 import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import java.util.UUID
 
 @Service
@@ -34,11 +37,13 @@ class TurnoService(
     private val perfilClienteRepository: PerfilClienteRepository,
     private val perfilProfesionalRepository: PerfilProfesionalRepository,
     private val pagoRepository: PagoRepository,
-    private val notificacionRepository: NotificacionRepository
+    private val notificacionRepository: NotificacionRepository,
+    private val n8nWebhookService: N8nWebhookService
 ) {
     private val zonaHorariaApp = ZoneId.of("America/Argentina/Buenos_Aires")
     private val comisionBasePorcentaje = BigDecimal("5.00")
     private val cien = BigDecimal("100")
+    private val formatoHoraWebhook = DateTimeFormatter.ofPattern("HH:mm")
 
     fun findById(id: UUID): Turno =
         turnoRepository.findById(id).orElseThrow { NotFoundException("Turno no encontrado con id: $id") }
@@ -176,6 +181,7 @@ class TurnoService(
                 )
             )
         }
+        notificarTurnoConfirmadoLuegoDelCommit(turno)
         return turno
     }
 
@@ -274,6 +280,39 @@ class TurnoService(
 
     private fun nombreCliente(turno: Turno): String =
         turno.cliente?.usuario?.nombreCompleto ?: turno.clienteExternoNombre ?: "Cliente externo"
+
+    private fun notificarTurnoConfirmadoLuegoDelCommit(turno: Turno) {
+        val payload = TurnoConfirmadoWebhookPayload(
+            nombre = nombreCliente(turno),
+            mail = mailCliente(turno),
+            profesional = turno.agenda.profesional.usuario.nombreCompleto,
+            especialidad = turno.agenda.profesional.especialidad,
+            fechaTurno = turno.iniciaEn.toLocalDate().toString(),
+            horaTurno = turno.iniciaEn.toLocalTime().format(formatoHoraWebhook)
+        )
+
+        ejecutarLuegoDelCommit {
+            n8nWebhookService.notificarTurnoConfirmado(payload)
+        }
+    }
+
+    private fun mailCliente(turno: Turno): String? =
+        turno.cliente?.usuario?.email ?: turno.clienteExternoEmail
+
+    private fun ejecutarLuegoDelCommit(action: () -> Unit) {
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            action()
+            return
+        }
+
+        TransactionSynchronizationManager.registerSynchronization(
+            object : TransactionSynchronization {
+                override fun afterCommit() {
+                    action()
+                }
+            }
+        )
+    }
 
     private fun calcularComision(monto: BigDecimal, porcentaje: BigDecimal): BigDecimal =
         monto.multiply(porcentaje)
