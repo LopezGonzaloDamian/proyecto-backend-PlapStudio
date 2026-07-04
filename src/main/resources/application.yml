@@ -24,6 +24,8 @@ logging:
   level:
     root: INFO
 agendify:
+  bootstrap:
+    enabled: true
   auth:
     token-secret: ${AGENDIFY_AUTH_SECRET:agendify-dev-secret}
     token-days: 30
@@ -37,6 +39,31 @@ agendify:
       base-url: https://generativelanguage.googleapis.com
       api-key: ${GEMINI_API_KEY:${API_KEY_GEMINI:}}
       model: gemini-2.0-flash
+  integrations:
+    n8n:
+      turno-confirmado-url: ${INTEGRATIONS_N8N_TURNO_CONFIRMADO_URL:http://0.0.0.0:5678/webhook/turno-confirmado}
+
+---
+# Perfil para deploy en Render. La datasource y el resto de la config
+# sensible se toman de variables de entorno (ver panel de Render).
+# El resto de las claves (auth, gemini, google, n8n) se heredan del
+# documento por defecto, que ya las lee desde el entorno.
+spring:
+  config:
+    activate:
+      on-profile: prod
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+  jpa:
+    hibernate:
+      ddl-auto: update
+server:
+  port: ${PORT:9000}
+agendify:
+  bootstrap:
+    enabled: ${AGENDIFY_BOOTSTRAP_ENABLED:true}
 
 ---
 spring:
@@ -46,6 +73,8 @@ spring:
   datasource:
     url: jdbc:postgresql://postgres:5432/db_agendify
 agendify:
+  bootstrap:
+    enabled: true
   auth:
     token-secret: ${AGENDIFY_AUTH_SECRET:agendify-dev-secret}
     token-days: 30
@@ -59,3 +88,6 @@ agendify:
       base-url: https://generativelanguage.googleapis.com
       api-key: ${GEMINI_API_KEY:${API_KEY_GEMINI:}}
       model: gemini-2.0-flash
+  integrations:
+    n8n:
+      turno-confirmado-url: ${INTEGRATIONS_N8N_TURNO_CONFIRMADO_URL:http://0.0.0.0:5678/webhook/turno-confirmado}

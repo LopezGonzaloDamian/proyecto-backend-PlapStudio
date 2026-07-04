@@ -1,5 +1,6 @@
 package plapstudio.agendify.controller
 
+import jakarta.validation.Valid
 import org.springframework.web.bind.annotation.*
 import plapstudio.agendify.auth.AuthGuard
 import plapstudio.agendify.dto.Mapper
@@ -35,7 +36,7 @@ class UsuarioController(
     }
 
     @PutMapping("/{id}")
-    fun update(@PathVariable id: Long, @RequestBody req: UsuarioUpdateRequest): UsuarioDto {
+    fun update(@PathVariable id: Long, @Valid @RequestBody req: UsuarioUpdateRequest): UsuarioDto {
         authGuard.requireUser(id)
         return mapper.toUsuarioDto(usuarioService.updatePerfil(id, req))
     }

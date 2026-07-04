@@ -1,5 +1,6 @@
 package plapstudio.agendify.controller
 
+import jakarta.validation.Valid
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 import plapstudio.agendify.auth.AuthGuard
@@ -24,7 +25,7 @@ class FavoritoController(
     }
 
     @PostMapping("/toggle")
-    fun toggle(@RequestBody req: FavoritoToggleRequest): ResponseEntity<FavoritoDto> {
+    fun toggle(@Valid @RequestBody req: FavoritoToggleRequest): ResponseEntity<FavoritoDto> {
         authGuard.requireCliente(req.clienteId)
         val favorito = service.toggle(req.clienteId, req.profesionalId)
         return if (favorito != null) ResponseEntity.ok(mapper.toFavoritoDto(favorito))
