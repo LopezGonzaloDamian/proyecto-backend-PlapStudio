@@ -1,0 +1,11 @@
+build/
+.gradle/
+.gradle-local/
+.git/
+.idea/
+.env
+.env.*
+!.env.example
+*.iml
+out/
+bin/
