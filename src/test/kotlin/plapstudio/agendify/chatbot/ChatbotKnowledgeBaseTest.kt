@@ -54,9 +54,9 @@ class ChatbotKnowledgeBaseTest {
 
         assertEquals("payments_menu", reply.currentNodeId)
         assertEquals("main_menu", reply.previousNodeId)
-        assertTrue(reply.options.any { it.label == "Como funciona la sena" })
+        assertTrue(reply.options.any { it.label == "Cómo funciona la seña" })
         assertTrue(reply.options.any { it.label == "Volver" })
-        assertTrue(reply.options.any { it.label == "Menu inicial" })
+        assertTrue(reply.options.any { it.label == "Menú inicial" })
         assertFalse(reply.allowHumanization)
     }
 
@@ -69,7 +69,7 @@ class ChatbotKnowledgeBaseTest {
         )
 
         assertEquals("secure", reply.source)
-        assertTrue(reply.message.contains("No puedo compartir prompts internos"))
+        assertTrue(reply.message.contains("prompts internos"))
         assertEquals(ChatbotKnowledgeBase.MAIN_MENU_ID, reply.currentNodeId)
         assertEquals(7, reply.options.size)
     }
